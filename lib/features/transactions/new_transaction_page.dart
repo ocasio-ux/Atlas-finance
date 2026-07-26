@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../app/theme/atlas_colors.dart';
 import '../../shared/formatters/currency_formatter.dart';
+import '../accounts/account_model.dart';
+import '../accounts/account_store.dart';
+import '../cards/card_model.dart';
+import '../cards/card_store.dart';
 import 'transaction_model.dart';
 import 'transaction_store.dart';
 
@@ -17,6 +21,8 @@ class NewTransactionPage extends StatefulWidget {
 class _NewTransactionPageState extends State<NewTransactionPage> {
   late TransactionType type;
   late TransactionCategory category;
+  TransactionSourceType? sourceType;
+  String? sourceId;
   final amountController = TextEditingController();
   final descriptionController = TextEditingController();
   bool saving = false;
@@ -29,10 +35,18 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
     final transaction = widget.transaction;
     type = transaction?.type ?? TransactionType.expense;
     category = transaction?.category ?? TransactionCategory.other;
+    sourceType = transaction?.sourceType;
+    sourceId = transaction?.sourceId;
     if (transaction != null) {
       amountController.text = transaction.amount.toStringAsFixed(2).replaceAll('.', ',');
       descriptionController.text = transaction.description;
     }
+    AccountStore.instance.load().then((_) => _refresh());
+    CardStore.instance.load().then((_) => _refresh());
+  }
+
+  void _refresh() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _save() async {
@@ -56,6 +70,8 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
           : descriptionController.text.trim(),
       createdAt: existing?.createdAt ?? now,
       category: category,
+      sourceType: sourceType,
+      sourceId: sourceId,
     );
 
     if (editing) {
@@ -109,6 +125,68 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
     if (selected != null) setState(() => category = selected);
   }
 
+  Future<void> _chooseSource() async {
+    final accounts = AccountStore.instance.accounts;
+    final cards = CardStore.instance.cards;
+    final selected = await showModalBottomSheet<_SourceSelection>(
+      context: context,
+      backgroundColor: AtlasColors.surface,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 20),
+          children: [
+            ListTile(
+              leading: const Icon(Icons.remove_circle_outline, color: AtlasColors.textMuted),
+              title: const Text('Sem conta ou cartão', style: TextStyle(color: AtlasColors.white)),
+              onTap: () => Navigator.pop(context, const _SourceSelection(null, null)),
+            ),
+            if (accounts.isNotEmpty) const _SourceHeader('Contas'),
+            ...accounts.map((account) => ListTile(
+              leading: const Icon(Icons.account_balance_wallet_outlined, color: AtlasColors.green),
+              title: Text(account.name, style: const TextStyle(color: AtlasColors.white)),
+              subtitle: Text(_accountTypeLabel(account.type), style: const TextStyle(color: AtlasColors.textMuted)),
+              trailing: sourceType == TransactionSourceType.account && sourceId == account.id ? const Icon(Icons.check_rounded, color: AtlasColors.green) : null,
+              onTap: () => Navigator.pop(context, _SourceSelection(TransactionSourceType.account, account.id)),
+            )),
+            if (cards.isNotEmpty) const _SourceHeader('Cartões'),
+            ...cards.map((card) => ListTile(
+              leading: const Icon(Icons.credit_card_rounded, color: AtlasColors.green),
+              title: Text(card.name, style: const TextStyle(color: AtlasColors.white)),
+              subtitle: Text(card.lastFourDigits.isEmpty ? 'Cartão' : 'Final ${card.lastFourDigits}', style: const TextStyle(color: AtlasColors.textMuted)),
+              trailing: sourceType == TransactionSourceType.card && sourceId == card.id ? const Icon(Icons.check_rounded, color: AtlasColors.green) : null,
+              onTap: () => Navigator.pop(context, _SourceSelection(TransactionSourceType.card, card.id)),
+            )),
+            if (accounts.isEmpty && cards.isEmpty)
+              const Padding(
+                padding: EdgeInsets.all(20),
+                child: Text('Cadastre uma conta ou cartão para vinculá-lo às movimentações.', textAlign: TextAlign.center, style: TextStyle(color: AtlasColors.textMuted)),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (selected != null) {
+      setState(() {
+        sourceType = selected.type;
+        sourceId = selected.id;
+      });
+    }
+  }
+
+  String get _sourceLabel {
+    if (sourceType == TransactionSourceType.account && sourceId != null) {
+      return AccountStore.instance.findById(sourceId!)?.name ?? 'Conta não encontrada';
+    }
+    if (sourceType == TransactionSourceType.card && sourceId != null) {
+      return CardStore.instance.findById(sourceId!)?.name ?? 'Cartão não encontrado';
+    }
+    return AccountStore.instance.accounts.isEmpty && CardStore.instance.cards.isEmpty
+        ? 'Nenhum cadastrado ainda'
+        : 'Não selecionado';
+  }
+
   String _defaultDescription(TransactionType value) => switch (value) {
         TransactionType.expense => 'Despesa',
         TransactionType.income => 'Receita',
@@ -151,7 +229,7 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
             const SizedBox(height: 12),
             _OptionTile(icon: _categoryIcon(category), title: 'Categoria', subtitle: _categoryLabel(category), onTap: _chooseCategory),
             const SizedBox(height: 12),
-            const _OptionTile(icon: Icons.account_balance_wallet_outlined, title: 'Conta ou cartão', subtitle: 'Disponível em breve'),
+            _OptionTile(icon: Icons.account_balance_wallet_outlined, title: 'Conta ou cartão', subtitle: _sourceLabel, onTap: _chooseSource),
             const SizedBox(height: 12),
             const _OptionTile(icon: Icons.calendar_today_outlined, title: 'Data', subtitle: 'Hoje'),
             const SizedBox(height: 28),
@@ -170,6 +248,29 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
     );
   }
 }
+
+class _SourceSelection {
+  const _SourceSelection(this.type, this.id);
+  final TransactionSourceType? type;
+  final String? id;
+}
+
+class _SourceHeader extends StatelessWidget {
+  const _SourceHeader(this.label);
+  final String label;
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(16, 18, 16, 6),
+    child: Text(label, style: const TextStyle(color: AtlasColors.textMuted, fontWeight: FontWeight.w700)),
+  );
+}
+
+String _accountTypeLabel(AccountType type) => switch (type) {
+  AccountType.checking => 'Conta corrente',
+  AccountType.savings => 'Poupança',
+  AccountType.wallet => 'Carteira digital',
+  AccountType.cash => 'Dinheiro',
+};
 
 String _categoryLabel(TransactionCategory category) => switch (category) {
   TransactionCategory.food => 'Alimentação',
