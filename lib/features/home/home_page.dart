@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../app/theme/atlas_colors.dart';
+import '../../shared/formatters/currency_formatter.dart';
 import '../transactions/new_transaction_page.dart';
 import '../transactions/transaction_model.dart';
 import '../transactions/transaction_store.dart';
@@ -38,12 +39,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  String _money(double value) {
-    final negative = value < 0;
-    final absolute = value.abs().toStringAsFixed(2).replaceAll('.', ',');
-    return '${negative ? '- ' : ''}R\$ $absolute';
-  }
-
   @override
   Widget build(BuildContext context) {
     final recent = store.transactions.take(4).toList();
@@ -55,12 +50,12 @@ class _HomePageState extends State<HomePage> {
           children: [
             const _Header(),
             const SizedBox(height: 30),
-            _BalanceCard(value: _money(store.balance)),
+            _BalanceCard(value: CurrencyFormatter.brl(store.balance)),
             const SizedBox(height: 16),
             Row(children: [
-              Expanded(child: _MoneyCard(title: 'Receitas', value: _money(store.income), icon: Icons.arrow_upward_rounded, accent: AtlasColors.green)),
+              Expanded(child: _MoneyCard(title: 'Receitas', value: CurrencyFormatter.brl(store.income), icon: Icons.arrow_upward_rounded, accent: AtlasColors.green)),
               const SizedBox(width: 12),
-              Expanded(child: _MoneyCard(title: 'Despesas', value: _money(store.expenses), icon: Icons.arrow_downward_rounded, accent: AtlasColors.expense)),
+              Expanded(child: _MoneyCard(title: 'Despesas', value: CurrencyFormatter.brl(store.expenses), icon: Icons.arrow_downward_rounded, accent: AtlasColors.expense)),
             ]),
             const SizedBox(height: 28),
             const _SectionTitle(title: 'Seu Atlas', action: 'Ver tudo'),
@@ -74,7 +69,7 @@ class _HomePageState extends State<HomePage> {
             else
               ...recent.map((item) => Padding(
                     padding: const EdgeInsets.only(bottom: 10),
-                    child: _TransactionTile(transaction: item, money: _money),
+                    child: _TransactionTile(transaction: item),
                   )),
           ],
         ),
@@ -187,9 +182,8 @@ class _EmptyTransactions extends StatelessWidget {
 }
 
 class _TransactionTile extends StatelessWidget {
-  const _TransactionTile({required this.transaction, required this.money});
+  const _TransactionTile({required this.transaction});
   final AtlasTransaction transaction;
-  final String Function(double) money;
 
   @override
   Widget build(BuildContext context) {
@@ -205,7 +199,7 @@ class _TransactionTile extends StatelessWidget {
         Container(width: 42, height: 42, decoration: BoxDecoration(color: accent.withValues(alpha: 0.16), borderRadius: BorderRadius.circular(13)), child: Icon(icon, color: accent)),
         const SizedBox(width: 12),
         Expanded(child: Text(transaction.description, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AtlasColors.white, fontWeight: FontWeight.w700))),
-        Text('$prefix${money(transaction.amount)}', style: TextStyle(color: accent, fontWeight: FontWeight.w800)),
+        Text('$prefix${CurrencyFormatter.brl(transaction.amount)}', style: TextStyle(color: accent, fontWeight: FontWeight.w800)),
       ]),
     );
   }
