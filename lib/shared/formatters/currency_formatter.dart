@@ -15,12 +15,12 @@ abstract final class CurrencyFormatter {
       groups.insert(0, digits.substring(start, end));
     }
 
-    return '${negative ? '- ' : ''}R\$ ${groups.join('.')}\,$decimal'
-        .replaceAll(r'\,', ',');
+    final sign = negative ? '- ' : '';
+    return '$sign${r'R$'} ${groups.join('.')},$decimal';
   }
 
   static double? parseBrl(String input) {
-    var raw = input.trim().replaceAll('R\$', '').replaceAll(' ', '');
+    var raw = input.trim().replaceAll(r'R$', '').replaceAll(' ', '');
     if (raw.isEmpty) return null;
 
     if (raw.contains(',')) {
