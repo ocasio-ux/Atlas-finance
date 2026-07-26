@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../app/theme/atlas_colors.dart';
 import '../../shared/formatters/currency_formatter.dart';
+import '../accounts/accounts_cards_page.dart';
 import '../transactions/new_transaction_page.dart';
 import '../transactions/transaction_model.dart';
 import '../transactions/transaction_store.dart';
@@ -41,6 +42,10 @@ class _HomePageState extends State<HomePage> {
     await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => NewTransactionPage(transaction: transaction)));
   }
 
+  Future<void> _openAccountsAndCards() async {
+    await Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => const AccountsCardsPage()));
+  }
+
   @override
   Widget build(BuildContext context) {
     final recent = store.transactions.take(4).toList();
@@ -50,7 +55,7 @@ class _HomePageState extends State<HomePage> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(22, 24, 22, 120),
           children: [
-            const _Header(),
+            _Header(onWalletTap: _openAccountsAndCards),
             const SizedBox(height: 30),
             _BalanceCard(value: CurrencyFormatter.brl(store.balance)),
             const SizedBox(height: 16),
@@ -59,6 +64,10 @@ class _HomePageState extends State<HomePage> {
               const SizedBox(width: 12),
               Expanded(child: _MoneyCard(title: 'Despesas', value: CurrencyFormatter.brl(store.expenses), icon: Icons.arrow_downward_rounded, accent: AtlasColors.expense)),
             ]),
+            const SizedBox(height: 28),
+            _SectionTitle(title: 'Contas e cartões', action: 'Gerenciar', onTap: _openAccountsAndCards),
+            const SizedBox(height: 12),
+            _AccountsShortcut(onTap: _openAccountsAndCards),
             const SizedBox(height: 28),
             const _SectionTitle(title: 'Seu Atlas', action: 'Ver tudo'),
             const SizedBox(height: 12),
@@ -88,9 +97,25 @@ class _HomePageState extends State<HomePage> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header();
+  const _Header({required this.onWalletTap});
+  final VoidCallback onWalletTap;
+
   @override
-  Widget build(BuildContext context) => const Row(children: [Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('ATLAS', style: TextStyle(color: AtlasColors.white, fontSize: 24, fontWeight: FontWeight.w800, letterSpacing: 5)), SizedBox(height: 2), Text('Seu dinheiro, mais claro.', style: TextStyle(color: AtlasColors.textMuted, fontSize: 13))])), CircleAvatar(radius: 22, backgroundColor: AtlasColors.surface, child: Icon(Icons.person_outline_rounded, color: AtlasColors.white))]);
+  Widget build(BuildContext context) => Row(children: [
+        const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('ATLAS', style: TextStyle(color: AtlasColors.white, fontSize: 24, fontWeight: FontWeight.w800, letterSpacing: 5)),
+          SizedBox(height: 2),
+          Text('Seu dinheiro, mais claro.', style: TextStyle(color: AtlasColors.textMuted, fontSize: 13)),
+        ])),
+        IconButton(
+          tooltip: 'Contas e cartões',
+          onPressed: onWalletTap,
+          style: IconButton.styleFrom(backgroundColor: AtlasColors.surface),
+          icon: const Icon(Icons.account_balance_wallet_outlined, color: AtlasColors.white),
+        ),
+        const SizedBox(width: 6),
+        const CircleAvatar(radius: 22, backgroundColor: AtlasColors.surface, child: Icon(Icons.person_outline_rounded, color: AtlasColors.white)),
+      ]);
 }
 
 class _BalanceCard extends StatelessWidget {
@@ -111,11 +136,43 @@ class _MoneyCard extends StatelessWidget {
 }
 
 class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({required this.title, this.action});
+  const _SectionTitle({required this.title, this.action, this.onTap});
   final String title;
   final String? action;
+  final VoidCallback? onTap;
   @override
-  Widget build(BuildContext context) => Row(children: [Expanded(child: Text(title, style: const TextStyle(color: AtlasColors.white, fontSize: 19, fontWeight: FontWeight.w800))), if (action != null) Text(action!, style: const TextStyle(color: AtlasColors.green, fontWeight: FontWeight.w700, fontSize: 13))]);
+  Widget build(BuildContext context) => Row(children: [
+        Expanded(child: Text(title, style: const TextStyle(color: AtlasColors.white, fontSize: 19, fontWeight: FontWeight.w800))),
+        if (action != null)
+          onTap == null
+              ? Text(action!, style: const TextStyle(color: AtlasColors.green, fontWeight: FontWeight.w700, fontSize: 13))
+              : TextButton(onPressed: onTap, child: Text(action!)),
+      ]);
+}
+
+class _AccountsShortcut extends StatelessWidget {
+  const _AccountsShortcut({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(22),
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(color: AtlasColors.surface, borderRadius: BorderRadius.circular(22)),
+          child: const Row(children: [
+            CircleAvatar(radius: 22, backgroundColor: Color(0x2912B879), child: Icon(Icons.account_balance_rounded, color: AtlasColors.green)),
+            SizedBox(width: 14),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Organize onde seu dinheiro está', style: TextStyle(color: AtlasColors.white, fontWeight: FontWeight.w800)),
+              SizedBox(height: 4),
+              Text('Cadastre contas, carteiras e cartões.', style: TextStyle(color: AtlasColors.textMuted, fontSize: 13)),
+            ])),
+            Icon(Icons.chevron_right_rounded, color: AtlasColors.green),
+          ]),
+        ),
+      );
 }
 
 class _AtlasAiCard extends StatelessWidget {
