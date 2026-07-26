@@ -15,7 +15,8 @@ abstract final class CurrencyFormatter {
       groups.insert(0, digits.substring(start, end));
     }
 
-    return '${negative ? '- ' : ''}R\$ ${groups.join('.')}\,$decimal'.replaceAll('\\,', ',');
+    return '${negative ? '- ' : ''}R\$ ${groups.join('.')}\,$decimal'
+        .replaceAll(r'\,', ',');
   }
 
   static double? parseBrl(String input) {
