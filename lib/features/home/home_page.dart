@@ -2,18 +2,51 @@ import 'package:flutter/material.dart';
 
 import '../../app/theme/atlas_colors.dart';
 import '../transactions/new_transaction_page.dart';
+import '../transactions/transaction_model.dart';
+import '../transactions/transaction_store.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
-  void _openNewTransaction(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => const NewTransactionPage()),
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  final store = TransactionStore.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    store.addListener(_refresh);
+    store.load();
+  }
+
+  @override
+  void dispose() {
+    store.removeListener(_refresh);
+    super.dispose();
+  }
+
+  void _refresh() {
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _openNewTransaction() async {
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const NewTransactionPage()),
     );
+  }
+
+  String _money(double value) {
+    final negative = value < 0;
+    final absolute = value.abs().toStringAsFixed(2).replaceAll('.', ',');
+    return '${negative ? '- ' : ''}R\$ $absolute';
   }
 
   @override
   Widget build(BuildContext context) {
+    final recent = store.transactions.take(4).toList();
     return Scaffold(
       backgroundColor: AtlasColors.background,
       body: SafeArea(
@@ -22,42 +55,32 @@ class HomePage extends StatelessWidget {
           children: [
             const _Header(),
             const SizedBox(height: 30),
-            const _BalanceCard(),
+            _BalanceCard(value: _money(store.balance)),
             const SizedBox(height: 16),
-            const Row(
-              children: [
-                Expanded(
-                  child: _MoneyCard(
-                    title: 'Receitas',
-                    value: 'R\$ 0,00',
-                    icon: Icons.arrow_upward_rounded,
-                    accent: AtlasColors.green,
-                  ),
-                ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: _MoneyCard(
-                    title: 'Despesas',
-                    value: 'R\$ 0,00',
-                    icon: Icons.arrow_downward_rounded,
-                    accent: AtlasColors.expense,
-                  ),
-                ),
-              ],
-            ),
+            Row(children: [
+              Expanded(child: _MoneyCard(title: 'Receitas', value: _money(store.income), icon: Icons.arrow_upward_rounded, accent: AtlasColors.green)),
+              const SizedBox(width: 12),
+              Expanded(child: _MoneyCard(title: 'Despesas', value: _money(store.expenses), icon: Icons.arrow_downward_rounded, accent: AtlasColors.expense)),
+            ]),
             const SizedBox(height: 28),
             const _SectionTitle(title: 'Seu Atlas', action: 'Ver tudo'),
             const SizedBox(height: 12),
             const _AtlasAiCard(),
             const SizedBox(height: 28),
-            const _SectionTitle(title: 'Visão geral'),
+            _SectionTitle(title: 'Movimentações recentes', action: '${store.count} total'),
             const SizedBox(height: 12),
-            const _OverviewCard(),
+            if (recent.isEmpty)
+              const _EmptyTransactions()
+            else
+              ...recent.map((item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: _TransactionTile(transaction: item, money: _money),
+                  )),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openNewTransaction(context),
+        onPressed: _openNewTransaction,
         backgroundColor: AtlasColors.green,
         foregroundColor: AtlasColors.white,
         icon: const Icon(Icons.add_rounded),
@@ -69,200 +92,121 @@ class HomePage extends StatelessWidget {
 
 class _Header extends StatelessWidget {
   const _Header();
-
   @override
-  Widget build(BuildContext context) {
-    return const Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'ATLAS',
-                style: TextStyle(
-                  color: AtlasColors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 5,
-                ),
-              ),
-              SizedBox(height: 2),
-              Text(
-                'Seu dinheiro, mais claro.',
-                style: TextStyle(color: AtlasColors.textMuted, fontSize: 13),
-              ),
-            ],
-          ),
-        ),
-        CircleAvatar(
-          radius: 22,
-          backgroundColor: AtlasColors.surface,
-          child: Icon(Icons.person_outline_rounded, color: AtlasColors.white),
-        ),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => const Row(children: [
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('ATLAS', style: TextStyle(color: AtlasColors.white, fontSize: 24, fontWeight: FontWeight.w800, letterSpacing: 5)),
+          SizedBox(height: 2),
+          Text('Seu dinheiro, mais claro.', style: TextStyle(color: AtlasColors.textMuted, fontSize: 13)),
+        ])),
+        CircleAvatar(radius: 22, backgroundColor: AtlasColors.surface, child: Icon(Icons.person_outline_rounded, color: AtlasColors.white)),
+      ]);
 }
 
 class _BalanceCard extends StatelessWidget {
-  const _BalanceCard();
-
+  const _BalanceCard({required this.value});
+  final String value;
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: AtlasColors.heroGradient,
-        borderRadius: BorderRadius.circular(28),
-      ),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.account_balance_wallet_outlined, color: AtlasColors.white, size: 20),
-              SizedBox(width: 8),
-              Text('Saldo total', style: TextStyle(color: AtlasColors.white, fontWeight: FontWeight.w600)),
-            ],
-          ),
-          SizedBox(height: 16),
-          Text(
-            'R\$ 0,00',
-            style: TextStyle(color: AtlasColors.white, fontSize: 36, fontWeight: FontWeight.w800),
-          ),
-          SizedBox(height: 6),
-          Text('Atualizado agora', style: TextStyle(color: Color(0xFFD7F9E9), fontSize: 12)),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(gradient: AtlasColors.heroGradient, borderRadius: BorderRadius.circular(28)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Row(children: [Icon(Icons.account_balance_wallet_outlined, color: AtlasColors.white, size: 20), SizedBox(width: 8), Text('Saldo total', style: TextStyle(color: AtlasColors.white, fontWeight: FontWeight.w600))]),
+          const SizedBox(height: 16),
+          Text(value, style: const TextStyle(color: AtlasColors.white, fontSize: 36, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 6),
+          const Text('Dados salvos neste aparelho', style: TextStyle(color: Color(0xFFD7F9E9), fontSize: 12)),
+        ]),
+      );
 }
 
 class _MoneyCard extends StatelessWidget {
   const _MoneyCard({required this.title, required this.value, required this.icon, required this.accent});
-
   final String title;
   final String value;
   final IconData icon;
   final Color accent;
-
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: AtlasColors.surface, borderRadius: BorderRadius.circular(22)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(color: accent.withValues(alpha: 0.16), borderRadius: BorderRadius.circular(11)),
-            child: Icon(icon, color: accent, size: 20),
-          ),
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: AtlasColors.surface, borderRadius: BorderRadius.circular(22)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(width: 36, height: 36, decoration: BoxDecoration(color: accent.withValues(alpha: 0.16), borderRadius: BorderRadius.circular(11)), child: Icon(icon, color: accent, size: 20)),
           const SizedBox(height: 18),
           Text(title, style: const TextStyle(color: AtlasColors.textMuted, fontSize: 13)),
           const SizedBox(height: 5),
           Text(value, style: TextStyle(color: accent, fontSize: 19, fontWeight: FontWeight.w800)),
-        ],
-      ),
-    );
-  }
+        ]),
+      );
 }
 
 class _SectionTitle extends StatelessWidget {
   const _SectionTitle({required this.title, this.action});
   final String title;
   final String? action;
-
   @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
+  Widget build(BuildContext context) => Row(children: [
         Expanded(child: Text(title, style: const TextStyle(color: AtlasColors.white, fontSize: 19, fontWeight: FontWeight.w800))),
         if (action != null) Text(action!, style: const TextStyle(color: AtlasColors.green, fontWeight: FontWeight.w700, fontSize: 13)),
-      ],
-    );
-  }
+      ]);
 }
 
 class _AtlasAiCard extends StatelessWidget {
   const _AtlasAiCard();
-
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF12B879), AtlasColors.greenDark],
-        ),
-        borderRadius: BorderRadius.circular(26),
-      ),
-      child: const Row(
-        children: [
-          CircleAvatar(
-            radius: 25,
-            backgroundColor: Color(0x33FFFFFF),
-            child: Icon(Icons.auto_awesome_rounded, color: AtlasColors.white),
-          ),
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF12B879), AtlasColors.greenDark]), borderRadius: BorderRadius.circular(26)),
+        child: const Row(children: [
+          CircleAvatar(radius: 25, backgroundColor: Color(0x33FFFFFF), child: Icon(Icons.auto_awesome_rounded, color: AtlasColors.white)),
           SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Sua gerente', style: TextStyle(color: AtlasColors.white, fontSize: 17, fontWeight: FontWeight.w800)),
-                SizedBox(height: 4),
-                Text('Converse com o Atlas sobre suas finanças.', style: TextStyle(color: Color(0xFFE2FFF1), fontSize: 13)),
-              ],
-            ),
-          ),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Sua gerente', style: TextStyle(color: AtlasColors.white, fontSize: 17, fontWeight: FontWeight.w800)),
+            SizedBox(height: 4),
+            Text('Converse com o Atlas sobre suas finanças.', style: TextStyle(color: Color(0xFFE2FFF1), fontSize: 13)),
+          ])),
           Icon(Icons.chevron_right_rounded, color: AtlasColors.white),
-        ],
-      ),
-    );
-  }
+        ]),
+      );
 }
 
-class _OverviewCard extends StatelessWidget {
-  const _OverviewCard();
+class _EmptyTransactions extends StatelessWidget {
+  const _EmptyTransactions();
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(22),
+        decoration: BoxDecoration(color: AtlasColors.surface, borderRadius: BorderRadius.circular(22)),
+        child: const Column(children: [
+          Icon(Icons.receipt_long_outlined, color: AtlasColors.green, size: 30),
+          SizedBox(height: 10),
+          Text('Nenhuma movimentação ainda', style: TextStyle(color: AtlasColors.white, fontWeight: FontWeight.w700)),
+          SizedBox(height: 4),
+          Text('Toque em Adicionar para registrar a primeira.', textAlign: TextAlign.center, style: TextStyle(color: AtlasColors.textMuted, fontSize: 13)),
+        ]),
+      );
+}
+
+class _TransactionTile extends StatelessWidget {
+  const _TransactionTile({required this.transaction, required this.money});
+  final AtlasTransaction transaction;
+  final String Function(double) money;
 
   @override
   Widget build(BuildContext context) {
+    final isExpense = transaction.type == TransactionType.expense;
+    final isIncome = transaction.type == TransactionType.income;
+    final accent = isExpense ? AtlasColors.expense : AtlasColors.green;
+    final icon = isExpense ? Icons.arrow_downward_rounded : isIncome ? Icons.arrow_upward_rounded : Icons.swap_horiz_rounded;
+    final prefix = isExpense ? '- ' : isIncome ? '+ ' : '';
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: AtlasColors.surface, borderRadius: BorderRadius.circular(22)),
-      child: const Column(
-        children: [
-          _OverviewRow(icon: Icons.receipt_long_outlined, label: 'Movimentações', value: '0'),
-          Padding(padding: EdgeInsets.symmetric(vertical: 14), child: Divider(height: 1, color: Color(0xFF39423B))),
-          _OverviewRow(icon: Icons.category_outlined, label: 'Categorias', value: 'Em breve'),
-          Padding(padding: EdgeInsets.symmetric(vertical: 14), child: Divider(height: 1, color: Color(0xFF39423B))),
-          _OverviewRow(icon: Icons.insights_outlined, label: 'Insights do Atlas', value: 'Em breve'),
-        ],
-      ),
-    );
-  }
-}
-
-class _OverviewRow extends StatelessWidget {
-  const _OverviewRow({required this.icon, required this.label, required this.value});
-  final IconData icon;
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, color: AtlasColors.green, size: 21),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: AtlasColors.surface, borderRadius: BorderRadius.circular(18)),
+      child: Row(children: [
+        Container(width: 42, height: 42, decoration: BoxDecoration(color: accent.withValues(alpha: 0.16), borderRadius: BorderRadius.circular(13)), child: Icon(icon, color: accent)),
         const SizedBox(width: 12),
-        Expanded(child: Text(label, style: const TextStyle(color: AtlasColors.white, fontWeight: FontWeight.w600))),
-        Text(value, style: const TextStyle(color: AtlasColors.textMuted, fontSize: 13)),
-      ],
+        Expanded(child: Text(transaction.description, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AtlasColors.white, fontWeight: FontWeight.w700))),
+        Text('$prefix${money(transaction.amount)}', style: TextStyle(color: accent, fontWeight: FontWeight.w800)),
+      ]),
     );
   }
 }
