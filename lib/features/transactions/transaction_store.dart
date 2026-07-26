@@ -17,14 +17,8 @@ class TransactionStore extends ChangeNotifier {
   List<AtlasTransaction> get transactions => List.unmodifiable(_transactions);
   int get count => _transactions.length;
 
-  double get income => _transactions
-      .where((item) => item.type == TransactionType.income)
-      .fold(0, (sum, item) => sum + item.amount);
-
-  double get expenses => _transactions
-      .where((item) => item.type == TransactionType.expense)
-      .fold(0, (sum, item) => sum + item.amount);
-
+  double get income => _transactions.where((item) => item.type == TransactionType.income).fold(0, (sum, item) => sum + item.amount);
+  double get expenses => _transactions.where((item) => item.type == TransactionType.expense).fold(0, (sum, item) => sum + item.amount);
   double get balance => income - expenses;
 
   Future<void> load() async {
@@ -42,8 +36,10 @@ class TransactionStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> add(AtlasTransaction transaction) async {
-    _transactions.add(transaction);
+  Future<void> add(AtlasTransaction transaction) async => addAll([transaction]);
+
+  Future<void> addAll(Iterable<AtlasTransaction> transactions) async {
+    _transactions.addAll(transactions);
     _sort();
     notifyListeners();
     await _persist();
@@ -52,7 +48,6 @@ class TransactionStore extends ChangeNotifier {
   Future<void> update(AtlasTransaction transaction) async {
     final index = _transactions.indexWhere((item) => item.id == transaction.id);
     if (index == -1) return;
-
     _transactions[index] = transaction;
     _sort();
     notifyListeners();
@@ -72,9 +67,7 @@ class TransactionStore extends ChangeNotifier {
     return null;
   }
 
-  void _sort() {
-    _transactions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-  }
+  void _sort() => _transactions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
   Future<void> _persist() async {
     final prefs = await SharedPreferences.getInstance();
