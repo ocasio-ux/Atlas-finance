@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../features/home/home_page.dart';
+import '../features/splash/atlas_splash_page.dart';
 import 'theme/app_theme.dart';
 
 class AtlasApp extends StatelessWidget {
@@ -12,7 +12,7 @@ class AtlasApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Atlas',
       theme: AppTheme.dark,
-      home: const HomePage(),
+      home: const AtlasSplashPage(),
     );
   }
 }
