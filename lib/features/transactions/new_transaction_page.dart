@@ -4,7 +4,6 @@ import '../../app/theme/atlas_colors.dart';
 import '../../shared/formatters/currency_formatter.dart';
 import '../accounts/account_model.dart';
 import '../accounts/account_store.dart';
-import '../cards/card_model.dart';
 import '../cards/card_store.dart';
 import 'transaction_model.dart';
 import 'transaction_store.dart';
