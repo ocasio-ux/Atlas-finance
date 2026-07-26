@@ -4,10 +4,8 @@ on:
   push:
     branches:
       - main
-      - feat/atlas-foundation
+      - 'feat/**'
   pull_request:
-    branches:
-      - main
 
 permissions:
   contents: read

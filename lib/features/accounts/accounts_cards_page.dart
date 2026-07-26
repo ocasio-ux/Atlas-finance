@@ -4,6 +4,8 @@ import '../../app/theme/atlas_colors.dart';
 import '../../shared/formatters/currency_formatter.dart';
 import '../cards/card_model.dart';
 import '../cards/card_store.dart';
+import '../transactions/transaction_model.dart';
+import '../transactions/transaction_store.dart';
 import 'account_model.dart';
 import 'account_store.dart';
 
@@ -17,25 +19,61 @@ class AccountsCardsPage extends StatefulWidget {
 class _AccountsCardsPageState extends State<AccountsCardsPage> {
   final accounts = AccountStore.instance;
   final cards = CardStore.instance;
+  final transactions = TransactionStore.instance;
 
   @override
   void initState() {
     super.initState();
     accounts.addListener(_refresh);
     cards.addListener(_refresh);
+    transactions.addListener(_refresh);
     accounts.load();
     cards.load();
+    transactions.load();
   }
 
   @override
   void dispose() {
     accounts.removeListener(_refresh);
     cards.removeListener(_refresh);
+    transactions.removeListener(_refresh);
     super.dispose();
   }
 
   void _refresh() {
     if (mounted) setState(() {});
+  }
+
+  double _accountBalance(AtlasAccount account) {
+    var balance = account.initialBalance;
+    for (final transaction in transactions.transactions) {
+      if (transaction.sourceType != TransactionSourceType.account || transaction.sourceId != account.id) continue;
+      switch (transaction.type) {
+        case TransactionType.income:
+          balance += transaction.amount;
+        case TransactionType.expense:
+          balance -= transaction.amount;
+        case TransactionType.transfer:
+          break;
+      }
+    }
+    return balance;
+  }
+
+  double _cardInvoice(AtlasCard card) {
+    var invoice = 0.0;
+    for (final transaction in transactions.transactions) {
+      if (transaction.sourceType != TransactionSourceType.card || transaction.sourceId != card.id) continue;
+      switch (transaction.type) {
+        case TransactionType.expense:
+          invoice += transaction.amount;
+        case TransactionType.income:
+          invoice -= transaction.amount;
+        case TransactionType.transfer:
+          break;
+      }
+    }
+    return invoice < 0 ? 0 : invoice;
   }
 
   Future<void> _addAccount() async {
@@ -150,8 +188,8 @@ class _AccountsCardsPageState extends State<AccountsCardsPage> {
             ...accounts.accounts.map((account) => _SourceCard(
                   icon: Icons.account_balance_wallet_outlined,
                   title: account.name,
-                  subtitle: _accountTypeLabel(account.type),
-                  trailing: CurrencyFormatter.brl(account.initialBalance),
+                  subtitle: '${_accountTypeLabel(account.type)} • saldo atual',
+                  trailing: CurrencyFormatter.brl(_accountBalance(account)),
                 )),
           const SizedBox(height: 28),
           _SectionHeader(title: 'Cartões', action: 'Adicionar', onTap: _addCard),
@@ -159,12 +197,18 @@ class _AccountsCardsPageState extends State<AccountsCardsPage> {
           if (cards.cards.isEmpty)
             const _EmptyCard(text: 'Nenhum cartão cadastrado.')
           else
-            ...cards.cards.map((card) => _SourceCard(
-                  icon: Icons.credit_card_rounded,
-                  title: card.name,
-                  subtitle: card.lastFourDigits.isEmpty ? 'Fecha dia ${card.closingDay} • vence dia ${card.dueDay}' : 'Final ${card.lastFourDigits} • vence dia ${card.dueDay}',
-                  trailing: card.limit == null ? 'Sem limite' : CurrencyFormatter.brl(card.limit!),
-                )),
+            ...cards.cards.map((card) {
+              final invoice = _cardInvoice(card);
+              final available = card.limit == null ? null : (card.limit! - invoice).clamp(0, card.limit!);
+              return _SourceCard(
+                icon: Icons.credit_card_rounded,
+                title: card.name,
+                subtitle: card.lastFourDigits.isEmpty
+                    ? 'Fatura ${CurrencyFormatter.brl(invoice)} • vence dia ${card.dueDay}'
+                    : 'Final ${card.lastFourDigits} • fatura ${CurrencyFormatter.brl(invoice)}',
+                trailing: available == null ? 'Fatura ${CurrencyFormatter.brl(invoice)}' : 'Livre ${CurrencyFormatter.brl(available.toDouble())}',
+              );
+            }),
         ],
       ),
     );
@@ -204,7 +248,8 @@ class _SourceCard extends StatelessWidget {
             const SizedBox(height: 3),
             Text(subtitle, style: const TextStyle(color: AtlasColors.textMuted, fontSize: 12)),
           ])),
-          Text(trailing, style: const TextStyle(color: AtlasColors.white, fontWeight: FontWeight.w700)),
+          const SizedBox(width: 8),
+          Flexible(child: Text(trailing, textAlign: TextAlign.end, style: const TextStyle(color: AtlasColors.white, fontWeight: FontWeight.w700))),
         ]),
       );
 }
