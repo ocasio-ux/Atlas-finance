@@ -4,6 +4,8 @@ enum TransactionCategory { food, transport, housing, health, leisure, shopping, 
 
 enum TransactionSourceType { account, card }
 
+enum TransactionRepeat { none, monthly }
+
 class AtlasTransaction {
   const AtlasTransaction({
     required this.id,
@@ -14,6 +16,10 @@ class AtlasTransaction {
     this.category = TransactionCategory.other,
     this.sourceType,
     this.sourceId,
+    this.repeat = TransactionRepeat.none,
+    this.seriesId,
+    this.installmentNumber,
+    this.installmentCount,
   });
 
   final String id;
@@ -24,8 +30,15 @@ class AtlasTransaction {
   final TransactionCategory category;
   final TransactionSourceType? sourceType;
   final String? sourceId;
+  final TransactionRepeat repeat;
+  final String? seriesId;
+  final int? installmentNumber;
+  final int? installmentCount;
 
-  AtlasTransaction copyWith({TransactionType? type, double? amount, String? description, DateTime? createdAt, TransactionCategory? category, TransactionSourceType? sourceType, String? sourceId}) => AtlasTransaction(
+  bool get isRecurring => repeat != TransactionRepeat.none;
+  bool get isInstallment => installmentNumber != null && installmentCount != null && installmentCount! > 1;
+
+  AtlasTransaction copyWith({TransactionType? type, double? amount, String? description, DateTime? createdAt, TransactionCategory? category, TransactionSourceType? sourceType, String? sourceId, TransactionRepeat? repeat, String? seriesId, int? installmentNumber, int? installmentCount}) => AtlasTransaction(
         id: id,
         type: type ?? this.type,
         amount: amount ?? this.amount,
@@ -34,6 +47,10 @@ class AtlasTransaction {
         category: category ?? this.category,
         sourceType: sourceType ?? this.sourceType,
         sourceId: sourceId ?? this.sourceId,
+        repeat: repeat ?? this.repeat,
+        seriesId: seriesId ?? this.seriesId,
+        installmentNumber: installmentNumber ?? this.installmentNumber,
+        installmentCount: installmentCount ?? this.installmentCount,
       );
 
   Map<String, Object?> toJson() => {
@@ -45,11 +62,16 @@ class AtlasTransaction {
         'category': category.name,
         'sourceType': sourceType?.name,
         'sourceId': sourceId,
+        'repeat': repeat.name,
+        'seriesId': seriesId,
+        'installmentNumber': installmentNumber,
+        'installmentCount': installmentCount,
       };
 
   factory AtlasTransaction.fromJson(Map<String, dynamic> json) {
     final categoryName = json['category'] as String?;
     final sourceTypeName = json['sourceType'] as String?;
+    final repeatName = json['repeat'] as String?;
     return AtlasTransaction(
       id: json['id'] as String,
       type: TransactionType.values.byName(json['type'] as String),
@@ -59,6 +81,10 @@ class AtlasTransaction {
       category: categoryName == null ? TransactionCategory.other : TransactionCategory.values.firstWhere((item) => item.name == categoryName, orElse: () => TransactionCategory.other),
       sourceType: sourceTypeName == null ? null : TransactionSourceType.values.firstWhere((item) => item.name == sourceTypeName, orElse: () => TransactionSourceType.account),
       sourceId: json['sourceId'] as String?,
+      repeat: repeatName == null ? TransactionRepeat.none : TransactionRepeat.values.firstWhere((item) => item.name == repeatName, orElse: () => TransactionRepeat.none),
+      seriesId: json['seriesId'] as String?,
+      installmentNumber: (json['installmentNumber'] as num?)?.toInt(),
+      installmentCount: (json['installmentCount'] as num?)?.toInt(),
     );
   }
 }
