@@ -1,102 +1,90 @@
-# Atlas Finance — Design Tokens v0.1
+# Atlas Finance — Design Tokens v0.2
 
-> Primeira especificação técnica da identidade visual. Valores poderão ser refinados após validação das telas reais.
+> Fonte de verdade da identidade visual aprovada do Atlas. As telas novas devem preservar esta linguagem.
 
 ## Conceito
 
-O Atlas usa uma estética escura, precisa e tecnológica. O azul é a assinatura de interação e inteligência do produto. Verde e vermelho são cores semânticas, não cores decorativas.
+O Atlas usa uma estética escura, tecnológica e financeira, com **verde esmeralda como assinatura da marca**. A identidade nasce do personagem Atlas carregando o dinheiro: força, responsabilidade, equilíbrio, proteção, controle e foco.
 
-## Cores
+Tagline de marca: **Seu dinheiro. Sob controle.**
 
-### Base
+Na experiência do app também pode aparecer a mensagem contextual **Seu dinheiro, mais claro.**
 
-| Token | Valor | Uso |
-|---|---:|---|
-| `background` | `#080B10` | fundo principal |
-| `surface` | `#10151D` | cards e superfícies |
-| `surfaceElevated` | `#171D27` | elementos elevados |
-| `border` | `#252D3A` | divisores e contornos |
-| `textPrimary` | `#F5F7FA` | conteúdo principal |
-| `textSecondary` | `#9DA8B8` | conteúdo auxiliar |
-| `textMuted` | `#697586` | conteúdo de baixa ênfase |
-
-### Marca e interação
+## Paleta oficial
 
 | Token | Valor | Uso |
 |---|---:|---|
-| `atlasPrimary` | `#5B8CFF` | ação principal, seleção e foco |
-| `atlasPrimaryStrong` | `#3F73F2` | estados pressionados/destaque |
-| `atlasPrimarySoft` | `#17264A` | fundos sutis ligados à marca |
+| `atlasGreen` | `#10B981` | cor principal da marca, CTAs e destaques |
+| `atlasGreenDark` | `#059669` | estados fortes/pressionados e gradientes |
+| `atlasGreenDeep` | `#064E3B` | superfícies verdes profundas |
+| `atlasSlate` | `#1F2937` | superfícies, cards e apoio |
+| `atlasWhite` | `#F3F4F6` | texto principal e versão clara da marca |
+| `atlasBackground` | `#111512` | fundo escuro do aplicativo |
+| `atlasSurface` | `#252B27` | cards principais |
+| `atlasSurfaceSoft` | `#303832` | cards elevados/campos |
+| `atlasTextMuted` | `#AEB7B0` | texto secundário |
+| `atlasExpense` | `#F08A78` | despesas/saídas |
 
-### Semânticas
+O verde é parte da identidade e não deve ser substituído por azul/roxo em componentes principais.
 
-| Token | Valor | Uso |
-|---|---:|---|
-| `positive` | `#43C98B` | receita, sucesso |
-| `negative` | `#FF6678` | despesa, erro |
-| `warning` | `#F4B860` | atenção |
-| `info` | `#66B5FF` | informação |
+## Gradientes
 
-As cores semânticas nunca devem ser o único indicador de significado.
-
-## Espaçamento
-
-Escala base de 4 dp:
-
-- `space1`: 4 dp
-- `space2`: 8 dp
-- `space3`: 12 dp
-- `space4`: 16 dp
-- `space5`: 20 dp
-- `space6`: 24 dp
-- `space8`: 32 dp
-- `space10`: 40 dp
-
-Margem horizontal padrão de tela: **20 dp**.
-
-## Bordas
-
-- `radiusSmall`: 8 dp
-- `radiusMedium`: 12 dp
-- `radiusLarge`: 18 dp
-- `radiusCard`: 20 dp
-- `radiusPill`: 999 dp
+Cards de grande destaque, como saldo e Atlas AI, podem usar gradiente entre `atlasGreen` e variações mais claras/escuras do verde. Cards utilitários permanecem em superfícies grafite para preservar hierarquia.
 
 ## Tipografia
 
-A implementação Android deve começar com uma família sans-serif moderna e altamente legível, utilizando os pesos disponíveis pelo sistema/Compose até a família definitiva ser validada.
+Família oficial: **Poppins**.
 
-Escala inicial:
+- marca ATLAS: Poppins Semibold, caixa alta e tracking amplo;
+- FINANCE: Poppins Medium, caixa alta e tracking amplo;
+- títulos: Poppins Semibold/Bold;
+- corpo: Poppins Regular/Medium;
+- números financeiros: Poppins Semibold/Bold.
 
-- Display financeiro: 36 sp / semibold
-- Headline: 28 sp / semibold
-- Title Large: 22 sp / semibold
-- Title Medium: 18 sp / medium
-- Body Large: 16 sp / regular
-- Body Medium: 14 sp / regular
-- Label: 12 sp / medium
+## Formas
 
-Valores monetários devem preferir números tabulares quando a fonte escolhida oferecer suporte.
+A interface usa cantos arredondados generosos:
 
-## Elevação
+- controles pequenos: 12 px;
+- campos e botões: 16 px;
+- cards: 20–24 px;
+- cards hero: 28–32 px;
+- chips: formato pill.
 
-O Atlas deve evitar sombras dramáticas. Profundidade será comunicada principalmente pela diferença entre fundo, superfície e borda.
+## Espaçamento
 
-## Ícones
+Escala base de 4 px: 4, 8, 12, 16, 20, 24, 32 e 40.
 
-- traço simples;
-- aparência consistente;
-- evitar mistura de famílias visuais;
-- ícones importantes acompanhados de rótulo quando houver risco de ambiguidade.
+Margem horizontal preferencial: 20–24 px, adaptável ao tamanho da tela.
 
-## Movimento
+## Iconografia
 
-Animações devem explicar mudança de estado, não decorar a interface.
+- ícones simples e reconhecíveis;
+- containers verdes arredondados para ações/categorias;
+- ícones claros sobre verde;
+- despesas podem usar a cor semântica de saída;
+- significado nunca depende apenas da cor.
 
-- feedback rápido: 100–150 ms;
-- transições comuns: 200–300 ms;
-- evitar animações longas em tarefas financeiras frequentes.
+## Componentes de assinatura
 
-## Material 3
+### Saldo total
+Card hero verde, grande, com valor financeiro como ponto focal.
 
-A implementação Android poderá usar Material 3 como fundação técnica, mas o Atlas não deve parecer um app Material genérico. Cores, formas, tipografia, componentes e comportamento devem ser encapsulados pelo tema e componentes próprios do Atlas.
+### Seu Atlas
+Área que apresenta a inteligência do produto como **Sua gerente**, usando card verde de alto destaque e acesso à conversa financeira.
+
+### Cards financeiros
+Receitas e despesas aparecem lado a lado em superfícies grafite, com iconografia e valores semanticamente diferenciados.
+
+### Ações
+Botões primários usam verde Atlas. A ação flutuante `Adicionar` preserva a mesma assinatura.
+
+## Tecnologia visual
+
+O aplicativo atual é construído em **Flutter**. O tema e componentes devem ser centralizados para impedir cores, tipografia e raios inconsistentes espalhados pelo código.
+
+Material pode servir como fundação técnica, mas componentes devem seguir a identidade Atlas, não a aparência padrão do framework.
+
+## Regra de consistência
+
+A identidade mostrada no dashboard e no brand board aprovado é a referência. Novos módulos, incluindo transações, contas, cartões, scanner e Atlas AI, devem parecer partes do mesmo produto desde o primeiro frame.
