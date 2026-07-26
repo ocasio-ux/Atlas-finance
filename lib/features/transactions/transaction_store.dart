@@ -36,16 +36,44 @@ class TransactionStore extends ChangeNotifier {
       _transactions
         ..clear()
         ..addAll(decoded.map((item) => AtlasTransaction.fromJson(item as Map<String, dynamic>)));
-      _transactions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      _sort();
     }
     _loaded = true;
     notifyListeners();
   }
 
   Future<void> add(AtlasTransaction transaction) async {
-    _transactions.insert(0, transaction);
+    _transactions.add(transaction);
+    _sort();
     notifyListeners();
     await _persist();
+  }
+
+  Future<void> update(AtlasTransaction transaction) async {
+    final index = _transactions.indexWhere((item) => item.id == transaction.id);
+    if (index == -1) return;
+
+    _transactions[index] = transaction;
+    _sort();
+    notifyListeners();
+    await _persist();
+  }
+
+  Future<void> delete(String transactionId) async {
+    _transactions.removeWhere((item) => item.id == transactionId);
+    notifyListeners();
+    await _persist();
+  }
+
+  AtlasTransaction? findById(String transactionId) {
+    for (final transaction in _transactions) {
+      if (transaction.id == transactionId) return transaction;
+    }
+    return null;
+  }
+
+  void _sort() {
+    _transactions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 
   Future<void> _persist() async {
