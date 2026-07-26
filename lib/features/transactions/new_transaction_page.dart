@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../app/theme/atlas_colors.dart';
+import '../../shared/formatters/currency_formatter.dart';
 import 'transaction_model.dart';
 import 'transaction_store.dart';
 
@@ -17,14 +18,8 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
   final descriptionController = TextEditingController();
   bool saving = false;
 
-  double? _parseAmount() {
-    var raw = amountController.text.trim().replaceAll('R\$', '').replaceAll(' ', '');
-    if (raw.contains(',')) raw = raw.replaceAll('.', '').replaceAll(',', '.');
-    return double.tryParse(raw);
-  }
-
   Future<void> _save() async {
-    final amount = _parseAmount();
+    final amount = CurrencyFormatter.parseBrl(amountController.text);
     if (amount == null || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Digite um valor válido.')),
