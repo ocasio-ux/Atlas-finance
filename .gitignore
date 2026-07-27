@@ -12,6 +12,36 @@
 .swiftpm/
 migrate_working_dir/
 
+# Local environment files. Commit documented templates, never local values.
+.env
+.env.*
+*.env
+!.env.example
+!.env.sample
+!.env.template
+
+# Credentials and private signing material.
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.p8
+*.key
+android/key.properties
+android/keystore.properties
+key.properties
+keystore.properties
+credentials.json
+credentials.local.json
+*.credentials.json
+*.secret
+*.secrets
+*.secret.json
+.secrets/
+secrets/
+service-account*.json
+firebase-adminsdk-*.json
+
 # IntelliJ related
 *.iml
 *.ipr
