@@ -53,7 +53,7 @@ class _PlanningPageState extends State<PlanningPage> {
       builder: (context) => AlertDialog(
         title: const Text('Novo orçamento'),
         content: StatefulBuilder(builder: (context, setLocalState) => Column(mainAxisSize: MainAxisSize.min, children: [
-          DropdownButtonFormField<TransactionCategory>(value: category, items: TransactionCategory.values.map((item) => DropdownMenuItem(value: item, child: Text(_categoryLabel(item)))).toList(), onChanged: (value) { if (value != null) setLocalState(() => category = value); }),
+          DropdownButtonFormField<TransactionCategory>(initialValue: category, items: TransactionCategory.values.map((item) => DropdownMenuItem(value: item, child: Text(_categoryLabel(item)))).toList(), onChanged: (value) { if (value != null) setLocalState(() => category = value); }),
           const SizedBox(height: 12),
           TextField(controller: amount, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Limite mensal')),
         ])),
