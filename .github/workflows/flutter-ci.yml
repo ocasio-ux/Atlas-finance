@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: atlas-flutter-${{ github.ref }}
+  group: atlas-flutter-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
