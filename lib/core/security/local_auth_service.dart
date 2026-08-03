@@ -4,7 +4,7 @@ import 'package:local_auth/local_auth.dart';
 /// Atlas never receives or stores fingerprints, face templates, PINs or patterns.
 class LocalAuthService {
   LocalAuthService({LocalAuthentication? auth})
-      : _auth = auth ?? LocalAuthentication();
+    : _auth = auth ?? LocalAuthentication();
 
   final LocalAuthentication _auth;
 
@@ -19,7 +19,8 @@ class LocalAuthService {
   Future<bool> authenticate() async {
     try {
       return await _auth.authenticate(
-        localizedReason: 'Desbloqueie o Atlas para acessar seus dados financeiros.',
+        localizedReason:
+            'Desbloqueie o Atlas para acessar seus dados financeiros.',
         biometricOnly: false,
         persistAcrossBackgrounding: true,
       );

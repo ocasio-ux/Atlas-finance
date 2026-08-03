@@ -5,7 +5,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 /// Google credentials are handled by Google/Firebase, never stored by Atlas.
 class AuthService {
   AuthService({FirebaseAuth? firebaseAuth})
-      : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance;
+    : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance;
 
   final FirebaseAuth _firebaseAuth;
 

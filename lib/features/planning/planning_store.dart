@@ -41,7 +41,9 @@ class PlanningStore extends ChangeNotifier {
   }
 
   Future<void> saveBudget(AtlasBudget budget) async {
-    final index = _budgets.indexWhere((item) => item.category == budget.category);
+    final index = _budgets.indexWhere(
+      (item) => item.category == budget.category,
+    );
     if (index == -1) {
       _budgets.add(budget);
     } else {
@@ -76,19 +78,27 @@ class PlanningStore extends ChangeNotifier {
 
   Future<void> _persistBudgets() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_budgetsKey, jsonEncode(_budgets.map((item) => item.toJson()).toList()));
+    await prefs.setString(
+      _budgetsKey,
+      jsonEncode(_budgets.map((item) => item.toJson()).toList()),
+    );
   }
 
   Future<void> _persistGoals() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_goalsKey, jsonEncode(_goals.map((item) => item.toJson()).toList()));
+    await prefs.setString(
+      _goalsKey,
+      jsonEncode(_goals.map((item) => item.toJson()).toList()),
+    );
   }
 
   List<T> _decodeList<T>(String? raw, T Function(Map<String, dynamic>) decode) {
     if (raw == null || raw.isEmpty) return const [];
     try {
       final values = jsonDecode(raw) as List<dynamic>;
-      return values.map((item) => decode(item as Map<String, dynamic>)).toList();
+      return values
+          .map((item) => decode(item as Map<String, dynamic>))
+          .toList();
     } catch (_) {
       // Preserve existing storage on malformed/unknown data instead of
       // overwriting it during load. A future migration can recover it.

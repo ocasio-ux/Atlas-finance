@@ -46,7 +46,9 @@ class AtlasFeatureAccess {
   };
 
   static bool canUse(AtlasPlan plan, AtlasFeature feature) =>
-      (plan == AtlasPlan.premium ? premiumFeatures : freeFeatures).contains(feature);
+      (plan == AtlasPlan.premium ? premiumFeatures : freeFeatures).contains(
+        feature,
+      );
 
   static bool isPremiumOnly(AtlasFeature feature) =>
       !freeFeatures.contains(feature) && premiumFeatures.contains(feature);

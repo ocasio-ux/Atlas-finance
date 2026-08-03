@@ -29,10 +29,15 @@ class FinancialForecastEngine {
         .fold<double>(0, (sum, item) => sum + _signed(item));
 
     final monthEnd = DateTime(now.year, now.month + 1, 0, 23, 59, 59, 999);
-    final future = all
-        .where((item) => item.createdAt.isAfter(now) && !item.createdAt.isAfter(monthEnd))
-        .toList()
-      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    final future =
+        all
+            .where(
+              (item) =>
+                  item.createdAt.isAfter(now) &&
+                  !item.createdAt.isAfter(monthEnd),
+            )
+            .toList()
+          ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
     final expectedIncome = future
         .where((item) => item.type == TransactionType.income)
@@ -54,8 +59,8 @@ class FinancialForecastEngine {
       forecast.projectedBalance - amount;
 
   double _signed(AtlasTransaction item) => switch (item.type) {
-        TransactionType.income => item.amount,
-        TransactionType.expense => -item.amount,
-        TransactionType.transfer => 0,
-      };
+    TransactionType.income => item.amount,
+    TransactionType.expense => -item.amount,
+    TransactionType.transfer => 0,
+  };
 }

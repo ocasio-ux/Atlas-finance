@@ -4,17 +4,18 @@ import 'atlas_colors.dart';
 
 abstract final class AppTheme {
   static ThemeData get dark {
-    final scheme = ColorScheme.fromSeed(
-      seedColor: AtlasColors.green,
-      brightness: Brightness.dark,
-      surface: AtlasColors.surface,
-    ).copyWith(
-      primary: AtlasColors.green,
-      secondary: AtlasColors.greenDark,
-      error: AtlasColors.expense,
-      surface: AtlasColors.surface,
-      onSurface: AtlasColors.white,
-    );
+    final scheme =
+        ColorScheme.fromSeed(
+          seedColor: AtlasColors.green,
+          brightness: Brightness.dark,
+          surface: AtlasColors.surface,
+        ).copyWith(
+          primary: AtlasColors.green,
+          secondary: AtlasColors.greenDark,
+          error: AtlasColors.expense,
+          surface: AtlasColors.surface,
+          onSurface: AtlasColors.white,
+        );
 
     return ThemeData(
       useMaterial3: true,

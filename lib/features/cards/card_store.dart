@@ -23,7 +23,11 @@ class CardStore extends ChangeNotifier {
       final decoded = jsonDecode(raw) as List<dynamic>;
       _cards
         ..clear()
-        ..addAll(decoded.map((item) => AtlasCard.fromJson(item as Map<String, dynamic>)));
+        ..addAll(
+          decoded.map(
+            (item) => AtlasCard.fromJson(item as Map<String, dynamic>),
+          ),
+        );
     }
     _loaded = true;
     notifyListeners();
@@ -58,6 +62,9 @@ class CardStore extends ChangeNotifier {
 
   Future<void> _persist() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_storageKey, jsonEncode(_cards.map((item) => item.toJson()).toList()));
+    await prefs.setString(
+      _storageKey,
+      jsonEncode(_cards.map((item) => item.toJson()).toList()),
+    );
   }
 }

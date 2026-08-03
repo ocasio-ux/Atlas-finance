@@ -17,8 +17,12 @@ class TransactionStore extends ChangeNotifier {
   List<AtlasTransaction> get transactions => List.unmodifiable(_transactions);
   int get count => _transactions.length;
 
-  double get income => _transactions.where((item) => item.type == TransactionType.income).fold(0, (sum, item) => sum + item.amount);
-  double get expenses => _transactions.where((item) => item.type == TransactionType.expense).fold(0, (sum, item) => sum + item.amount);
+  double get income => _transactions
+      .where((item) => item.type == TransactionType.income)
+      .fold(0, (sum, item) => sum + item.amount);
+  double get expenses => _transactions
+      .where((item) => item.type == TransactionType.expense)
+      .fold(0, (sum, item) => sum + item.amount);
   double get balance => income - expenses;
 
   Future<void> load() async {
@@ -29,7 +33,11 @@ class TransactionStore extends ChangeNotifier {
       final decoded = jsonDecode(raw) as List<dynamic>;
       _transactions
         ..clear()
-        ..addAll(decoded.map((item) => AtlasTransaction.fromJson(item as Map<String, dynamic>)));
+        ..addAll(
+          decoded.map(
+            (item) => AtlasTransaction.fromJson(item as Map<String, dynamic>),
+          ),
+        );
       _sort();
     }
     _loaded = true;
@@ -67,7 +75,8 @@ class TransactionStore extends ChangeNotifier {
     return null;
   }
 
-  void _sort() => _transactions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  void _sort() =>
+      _transactions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
   Future<void> _persist() async {
     final prefs = await SharedPreferences.getInstance();

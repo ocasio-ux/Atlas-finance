@@ -23,7 +23,11 @@ class AccountStore extends ChangeNotifier {
       final decoded = jsonDecode(raw) as List<dynamic>;
       _accounts
         ..clear()
-        ..addAll(decoded.map((item) => AtlasAccount.fromJson(item as Map<String, dynamic>)));
+        ..addAll(
+          decoded.map(
+            (item) => AtlasAccount.fromJson(item as Map<String, dynamic>),
+          ),
+        );
     }
     _loaded = true;
     notifyListeners();
@@ -58,6 +62,9 @@ class AccountStore extends ChangeNotifier {
 
   Future<void> _persist() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_storageKey, jsonEncode(_accounts.map((item) => item.toJson()).toList()));
+    await prefs.setString(
+      _storageKey,
+      jsonEncode(_accounts.map((item) => item.toJson()).toList()),
+    );
   }
 }
