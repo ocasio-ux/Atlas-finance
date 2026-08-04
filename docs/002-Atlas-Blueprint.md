@@ -14,7 +14,7 @@
 
 O Atlas Finance é uma plataforma de inteligência financeira pessoal.
 
-Seu objetivo não é apenas registrar receitas e despesas, mas transformar dados financeiros em contexto, compreensão e decisão melhor.
+Seu objetivo não é apenas registrar receitas e despesas, mas transformar dados financeiros em contexto, compreensão e decisões melhores.
 
 O Atlas deve funcionar como um copiloto financeiro, com base em dados verificáveis, regras determinísticas e inteligência interpretativa.
 
