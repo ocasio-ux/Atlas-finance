@@ -26,29 +26,35 @@ void main() {
     );
   });
 
-  test('premium unlocks active intelligence without changing free features', () {
-    expect(
-      AtlasFeatureAccess.canUse(
-        AtlasPlan.premium,
-        AtlasFeature.atlasAiAssistant,
-      ),
-      isTrue,
-    );
-    expect(
-      AtlasFeatureAccess.isPremiumOnly(AtlasFeature.advancedForecast),
-      isTrue,
-    );
-    expect(
-      AtlasFeatureAccess.isPremiumOnly(AtlasFeature.openFinance),
-      isFalse,
-    );
-  });
+  test(
+    'premium unlocks active intelligence without changing free features',
+    () {
+      expect(
+        AtlasFeatureAccess.canUse(
+          AtlasPlan.premium,
+          AtlasFeature.atlasAiAssistant,
+        ),
+        isTrue,
+      );
+      expect(
+        AtlasFeatureAccess.isPremiumOnly(AtlasFeature.advancedForecast),
+        isTrue,
+      );
+      expect(
+        AtlasFeatureAccess.isPremiumOnly(AtlasFeature.openFinance),
+        isFalse,
+      );
+    },
+  );
 
-  test('safe Open Finance boundary returns no production data by default', () async {
-    const gateway = DisabledOpenFinanceGateway();
+  test(
+    'safe Open Finance boundary returns no production data by default',
+    () async {
+      const gateway = DisabledOpenFinanceGateway();
 
-    expect(await gateway.accounts(), isEmpty);
-  });
+      expect(await gateway.accounts(), isEmpty);
+    },
+  );
 
   test('local backend placeholder does not create a session', () async {
     const backend = LocalBackendPlaceholder();
