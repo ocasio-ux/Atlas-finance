@@ -44,6 +44,7 @@ void main() {
       now: DateTime(2026, 7, 15, 12),
     );
 
+    expect(forecast.currentBalance, closeTo(-199.80, 0.001));
     expect(forecast.expectedIncome, 3000);
     expect(forecast.expectedExpenses, closeTo(99.90, 0.001));
     expect(forecast.commitments.map((item) => item.description), [
