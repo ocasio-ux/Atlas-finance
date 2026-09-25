@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../app/theme/atlas_colors.dart';
+import '../../core/finance/financial_ledger.dart';
 import '../../shared/formatters/currency_formatter.dart';
 import '../cards/card_model.dart';
 import '../cards/card_store.dart';
@@ -44,7 +45,7 @@ class _AccountsCardsPageState extends State<AccountsCardsPage> {
     if (mounted) setState(() {});
   }
 
-  double _accountBalance(AtlasAccount account) {
+  double _accountBalanceLegacy(AtlasAccount account) {
     var balance = account.initialBalance;
     for (final transaction in transactions.transactions) {
       if (transaction.sourceType != TransactionSourceType.account ||
@@ -63,7 +64,7 @@ class _AccountsCardsPageState extends State<AccountsCardsPage> {
     return balance;
   }
 
-  double _cardInvoice(AtlasCard card) {
+  double _cardInvoiceLegacy(AtlasCard card) {
     var invoice = 0.0;
     for (final transaction in transactions.transactions) {
       if (transaction.sourceType != TransactionSourceType.card ||
@@ -250,6 +251,11 @@ class _AccountsCardsPageState extends State<AccountsCardsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final ledger = FinancialLedger(
+      accounts: accounts.accounts,
+      cards: cards.cards,
+      transactions: transactions.transactions,
+    );
     return Scaffold(
       backgroundColor: AtlasColors.background,
       appBar: AppBar(
@@ -277,7 +283,7 @@ class _AccountsCardsPageState extends State<AccountsCardsPage> {
                 icon: Icons.account_balance_wallet_outlined,
                 title: account.name,
                 subtitle: '${_accountTypeLabel(account.type)} • saldo atual',
-                trailing: CurrencyFormatter.brl(_accountBalance(account)),
+                trailing: CurrencyFormatter.brl(ledger.accountBalance(account.id)),
               ),
             ),
           const SizedBox(height: 28),
@@ -291,7 +297,7 @@ class _AccountsCardsPageState extends State<AccountsCardsPage> {
             const _EmptyCard(text: 'Nenhum cartão cadastrado.')
           else
             ...cards.cards.map((card) {
-              final invoice = _cardInvoice(card);
+              final invoice = ledger.cardInvoice(card.id);
               final available = card.limit == null
                   ? null
                   : (card.limit! - invoice).clamp(0, card.limit!);
