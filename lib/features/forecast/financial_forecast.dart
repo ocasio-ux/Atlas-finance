@@ -1,3 +1,5 @@
+import '../../core/finance/financial_commitment.dart';
+import '../../core/finance/commitment_engine.dart';
 import '../../core/finance/transaction_recurrence.dart';
 import '../transactions/transaction_model.dart';
 
@@ -6,6 +8,7 @@ class FinancialForecast {
     required this.currentBalance,
     required this.expectedIncome,
     required this.expectedExpenses,
+    required this.commitmentReserve,
     required this.projectedBalance,
     required this.commitments,
   });
@@ -13,20 +16,27 @@ class FinancialForecast {
   final double currentBalance;
   final double expectedIncome;
   final double expectedExpenses;
+  final double commitmentReserve;
   final double projectedBalance;
   final List<AtlasTransaction> commitments;
+
+  double get projectedAfterCommitments =>
+      currentBalance + expectedIncome - expectedExpenses - commitmentReserve;
 }
 
 class FinancialForecastEngine {
   const FinancialForecastEngine();
 
   static const _recurrence = TransactionRecurrenceEngine();
+  static const _commitments = FinancialCommitmentEngine();
 
   FinancialForecast forMonth({
     required Iterable<AtlasTransaction> transactions,
+    Iterable<FinancialCommitment> financialCommitments = const [],
     required DateTime now,
   }) {
     final all = transactions.toList(growable: false);
+    final monthEnd = DateTime(now.year, now.month + 1, 0, 23, 59, 59, 999);
 
     var currentBalance = all
         .where((item) => !item.transactionDate.isAfter(now))
@@ -44,7 +54,6 @@ class FinancialForecastEngine {
       );
     }
 
-    final monthEnd = DateTime(now.year, now.month + 1, 0, 23, 59, 59, 999);
     final future = all
         .where(
           (item) =>
@@ -73,11 +82,19 @@ class FinancialForecastEngine {
         .where((item) => item.type == TransactionType.expense)
         .fold<double>(0, (sum, item) => sum + item.amount);
 
+    final commitmentReserve = _commitments.totalOutstandingThrough(
+      financialCommitments,
+      referenceDate: now,
+      end: monthEnd,
+    );
+
     return FinancialForecast(
       currentBalance: currentBalance,
       expectedIncome: expectedIncome,
       expectedExpenses: expectedExpenses,
-      projectedBalance: currentBalance + expectedIncome - expectedExpenses,
+      commitmentReserve: commitmentReserve,
+      projectedBalance:
+          currentBalance + expectedIncome - expectedExpenses - commitmentReserve,
       commitments: List.unmodifiable(commitments),
     );
   }
