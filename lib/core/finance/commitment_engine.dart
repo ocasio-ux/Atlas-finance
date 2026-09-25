@@ -71,6 +71,23 @@ class FinancialCommitmentEngine {
     return _sum(dueBetween(commitments, start: start, end: end));
   }
 
+  double totalOutstandingThrough(
+    Iterable<FinancialCommitment> commitments, {
+    required DateTime referenceDate,
+    required DateTime end,
+  }) {
+    if (end.isBefore(referenceDate)) {
+      return 0;
+    }
+
+    final outstanding = [
+      ...overdue(commitments, referenceDate: referenceDate),
+      ...pending(commitments, referenceDate: referenceDate),
+    ].where((commitment) => !commitment.dueDate.isAfter(end));
+
+    return _sum(outstanding);
+  }
+
   double _sum(Iterable<FinancialCommitment> commitments) {
     return commitments.fold<double>(
       0,
