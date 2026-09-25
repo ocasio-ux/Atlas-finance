@@ -179,6 +179,31 @@ class FinancialLedger {
     );
   }
 
+  List<AtlasTransaction> cardInvoiceTransactions(
+    String cardId,
+    CardInvoice invoice,
+  ) {
+    final result = transactions.where((transaction) {
+      final isCardMovement =
+          transaction.sourceType == TransactionSourceType.card &&
+          transaction.sourceId == cardId;
+      final isInCycle =
+          !transaction.transactionDate.isBefore(invoice.startDate) &&
+          !transaction.transactionDate.isAfter(invoice.endDate);
+      return isCardMovement &&
+          isInCycle &&
+          (transaction.type == TransactionType.expense ||
+              transaction.type == TransactionType.income);
+    }).toList();
+
+    result.sort((a, b) {
+      final dateOrder = b.transactionDate.compareTo(a.transactionDate);
+      if (dateOrder != 0) return dateOrder;
+      return b.createdAt.compareTo(a.createdAt);
+    });
+    return result;
+  }
+
   double cardInvoice(String cardId, {DateTime? referenceDate}) =>
       currentCardInvoice(cardId, referenceDate: referenceDate).amount;
 
