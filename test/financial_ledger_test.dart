@@ -26,6 +26,109 @@ void main() {
     );
   }
 
+  test('ignores future account transactions from current balance', () {
+    final account = const AtlasAccount(
+      id: 'checking',
+      name: 'Conta',
+      type: AccountType.checking,
+      initialBalance: 1000,
+    );
+
+    final ledger = FinancialLedger(
+      accounts: [account],
+      cards: const [],
+      transactions: [
+        AtlasTransaction(
+          id: 'future',
+          type: TransactionType.expense,
+          amount: 300,
+          description: 'Futura',
+          createdAt: DateTime(2026, 9, 25),
+          transactionDate: DateTime(2026, 10, 1),
+          sourceType: TransactionSourceType.account,
+          sourceId: 'checking',
+        ),
+      ],
+    );
+
+    expect(
+      ledger.accountBalance(
+        'checking',
+        referenceDate: DateTime(2026, 9, 25),
+      ),
+      1000,
+    );
+    expect(
+      ledger.accountBalance(
+        'checking',
+        referenceDate: DateTime(2026, 10, 2),
+      ),
+      700,
+    );
+  });
+
+  test('totals expenses by category and period', () {
+    final ledger = FinancialLedger(
+      accounts: const [],
+      cards: const [],
+      transactions: [
+        AtlasTransaction(
+          id: 'food-1',
+          type: TransactionType.expense,
+          amount: 100,
+          description: 'Mercado',
+          createdAt: DateTime(2026, 9, 25),
+          transactionDate: DateTime(2026, 9, 5),
+          category: TransactionCategory.food,
+        ),
+        AtlasTransaction(
+          id: 'food-2',
+          type: TransactionType.expense,
+          amount: 50,
+          description: 'Restaurante',
+          createdAt: DateTime(2026, 9, 25),
+          transactionDate: DateTime(2026, 9, 20),
+          category: TransactionCategory.food,
+        ),
+        AtlasTransaction(
+          id: 'transport',
+          type: TransactionType.expense,
+          amount: 80,
+          description: 'Uber',
+          createdAt: DateTime(2026, 9, 25),
+          transactionDate: DateTime(2026, 9, 10),
+          category: TransactionCategory.transport,
+        ),
+        AtlasTransaction(
+          id: 'future-food',
+          type: TransactionType.expense,
+          amount: 200,
+          description: 'Compra futura',
+          createdAt: DateTime(2026, 9, 25),
+          transactionDate: DateTime(2026, 10, 1),
+          category: TransactionCategory.food,
+        ),
+      ],
+    );
+
+    expect(
+      ledger.expenseTotalByCategory(
+        TransactionCategory.food,
+        start: DateTime(2026, 9, 1),
+        end: DateTime(2026, 9, 30, 23, 59, 59),
+      ),
+      150,
+    );
+    expect(
+      ledger.expenseTotalByCategory(
+        TransactionCategory.food,
+        start: DateTime(2026, 9, 21),
+        end: DateTime(2026, 9, 30, 23, 59, 59),
+      ),
+      0,
+    );
+  });
+
   test('calculates each account from opening balance and linked transactions', () {
     final account = const AtlasAccount(
       id: 'checking',
