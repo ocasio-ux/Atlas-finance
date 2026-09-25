@@ -1,3 +1,5 @@
+import 'package:flutter_test/flutter_test.dart';
+
 import 'package:atlas_finance/core/finance/financial_commitment.dart';
 
 void main() {
