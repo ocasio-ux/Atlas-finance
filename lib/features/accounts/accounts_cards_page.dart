@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../app/theme/atlas_colors.dart';
-import '../../core/finance/card_invoice.dart';\nimport '../../core/finance/financial_ledger.dart';
+import '../../core/finance/card_invoice.dart';
+import '../../core/finance/financial_ledger.dart';
 import '../../shared/formatters/currency_formatter.dart';
 import '../cards/card_model.dart';
 import '../cards/card_store.dart';
@@ -45,6 +46,51 @@ class _AccountsCardsPageState extends State<AccountsCardsPage> {
     if (mounted) setState(() {});
   }
 
+
+  Future<void> _showInvoiceHistory(AtlasCard card) async {
+    final ledger = FinancialLedger(
+      accounts: accounts.accounts,
+      cards: cards.cards,
+      transactions: transactions.transactions,
+    );
+    final invoices = ledger.cardInvoiceHistory(card.id);
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AtlasColors.surface,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+          children: [
+            Text(
+              'Faturas • ' + card.name,
+              style: const TextStyle(color: AtlasColors.white, fontSize: 20, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 16),
+            ...invoices.map(
+              (invoice) => ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                  _shortDate(invoice.startDate) + ' - ' + _shortDate(invoice.endDate),
+                  style: const TextStyle(color: AtlasColors.white, fontWeight: FontWeight.w700),
+                ),
+                subtitle: Text(
+                  'Vence ' + _shortDate(invoice.dueDate),
+                  style: const TextStyle(color: AtlasColors.textMuted),
+                ),
+                trailing: Text(
+                  CurrencyFormatter.brl(invoice.amount),
+                  style: const TextStyle(color: AtlasColors.white, fontWeight: FontWeight.w800),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Future<void> _payCardInvoice(AtlasCard card, CardInvoice invoice) async {
     if (accounts.accounts.isEmpty) {
@@ -359,8 +405,9 @@ class _AccountsCardsPageState extends State<AccountsCardsPage> {
                     ? 'Fatura ${CurrencyFormatter.brl(invoice.amount)}'
                     : 'Livre ${CurrencyFormatter.brl(available)}',
                 onPay: invoice.amount > 0
-                    ? () => _payCardInvoice(card, invoice.amount)
+                    ? () => _payCardInvoice(card, invoice)
                     : null,
+                onTap: () => _showInvoiceHistory(card),
               );
             }),
         ],
@@ -409,6 +456,7 @@ class _CardSourceCard extends StatelessWidget {
     required this.subtitle,
     required this.trailing,
     this.onPay,
+    this.onTap,
   });
 
   final IconData icon;
@@ -416,9 +464,13 @@ class _CardSourceCard extends StatelessWidget {
   final String subtitle;
   final String trailing;
   final VoidCallback? onPay;
+  final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(BuildContext context) => InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(18),
+    child: Container(
     margin: const EdgeInsets.only(bottom: 10),
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
@@ -466,6 +518,7 @@ class _CardSourceCard extends StatelessWidget {
         ),
       ],
     ),
+  ),
   );
 }
 
@@ -564,4 +617,5 @@ String _accountTypeLabel(AccountType type) => switch (type) {
   AccountType.wallet => 'Carteira digital',
   AccountType.cash => 'Dinheiro',
 };
-\nString _shortDate(DateTime date) => '\${date.day.toString().padLeft(2, '0')}/\${date.month.toString().padLeft(2, '0')}';\n
+
+String _shortDate(DateTime date) => '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}';
