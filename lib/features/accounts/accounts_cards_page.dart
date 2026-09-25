@@ -407,3 +407,4 @@ String _accountTypeLabel(AccountType type) => switch (type) {
   AccountType.wallet => 'Carteira digital',
   AccountType.cash => 'Dinheiro',
 };
+\nString _shortDate(DateTime date) => '\${date.day.toString().padLeft(2, '0')}/\${date.month.toString().padLeft(2, '0')}';\n
