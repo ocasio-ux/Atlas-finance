@@ -23,8 +23,14 @@ class FinancialLedger {
 
     var balance = account.initialBalance;
     for (final transaction in transactions) {
-      if (transaction.sourceType != TransactionSourceType.account ||
-          transaction.sourceId != accountId) {
+      final affectsAsSource =
+          transaction.sourceType == TransactionSourceType.account &&
+          transaction.sourceId == accountId;
+      final affectsAsDestination =
+          transaction.destinationType == TransactionSourceType.account &&
+          transaction.destinationId == accountId;
+
+      if (!affectsAsSource && !affectsAsDestination) {
         continue;
       }
 
@@ -34,8 +40,11 @@ class FinancialLedger {
         case TransactionType.expense:
           balance -= transaction.amount;
         case TransactionType.transfer:
-          // The current transaction model has no destination yet, so an
-          // existing transfer cannot be applied to an account reliably.
+          if (affectsAsDestination) {
+            balance += transaction.amount;
+          } else if (affectsAsSource) {
+            balance -= transaction.amount;
+          }
           break;
       }
     }
