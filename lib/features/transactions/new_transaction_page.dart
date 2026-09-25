@@ -25,6 +25,7 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
   TransactionSourceType? destinationType;
   String? destinationId;
   late DateTime transactionDate;
+  int installmentCount = 1;
   final amountController = TextEditingController();
   final descriptionController = TextEditingController();
   bool saving = false;
@@ -57,37 +58,81 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
   }
 
   Future<void> _save() async {
-    final amount = CurrencyFormatter.parseBrl(amountController.text);
-    if (amount == null || amount <= 0) {
+    final totalAmount = CurrencyFormatter.parseBrl(amountController.text);
+    if (totalAmount == null || totalAmount <= 0) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Digite um valor válido.')));
       return;
     }
 
+    if (installmentCount > 1 &&
+        (type != TransactionType.expense ||
+            sourceType != TransactionSourceType.card)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Parcelamento está disponível para compras no cartão.')),
+      );
+      return;
+    }
+
     setState(() => saving = true);
     final existing = widget.transaction;
     final now = DateTime.now();
-    final transaction = AtlasTransaction(
-      id: existing?.id ?? now.microsecondsSinceEpoch.toString(),
-      type: type,
-      amount: amount,
-      description: descriptionController.text.trim().isEmpty
-          ? _defaultDescription(type)
-          : descriptionController.text.trim(),
-      createdAt: existing?.createdAt ?? now,
-      transactionDate: transactionDate,
-      category: category,
-      sourceType: sourceType,
-      sourceId: sourceId,
-      destinationType: destinationType,
-      destinationId: destinationId,
-    );
 
-    if (editing) {
-      await TransactionStore.instance.update(transaction);
+    if (!editing && installmentCount > 1) {
+      final seriesId = now.microsecondsSinceEpoch.toString();
+      final totalCents = (totalAmount * 100).round();
+      final baseCents = totalCents ~/ installmentCount;
+      final remainder = totalCents % installmentCount;
+      final installmentTransactions = List.generate(installmentCount, (index) {
+        final cents = baseCents + (index < remainder ? 1 : 0);
+        final date = _addMonths(transactionDate, index);
+        return AtlasTransaction(
+          id: '${seriesId}_${index + 1}',
+          type: TransactionType.expense,
+          amount: cents / 100,
+          description: descriptionController.text.trim().isEmpty
+              ? 'Compra parcelada'
+              : descriptionController.text.trim(),
+          createdAt: now,
+          transactionDate: date,
+          category: category,
+          sourceType: sourceType,
+          sourceId: sourceId,
+          repeat: TransactionRepeat.none,
+          seriesId: seriesId,
+          installmentNumber: index + 1,
+          installmentCount: installmentCount,
+        );
+      });
+
+      await TransactionStore.instance.addAll(installmentTransactions);
     } else {
-      await TransactionStore.instance.add(transaction);
+      final transaction = AtlasTransaction(
+        id: existing?.id ?? now.microsecondsSinceEpoch.toString(),
+        type: type,
+        amount: totalAmount,
+        description: descriptionController.text.trim().isEmpty
+            ? _defaultDescription(type)
+            : descriptionController.text.trim(),
+        createdAt: existing?.createdAt ?? now,
+        transactionDate: transactionDate,
+        category: category,
+        sourceType: sourceType,
+        sourceId: sourceId,
+        destinationType: destinationType,
+        destinationId: destinationId,
+        installmentNumber: existing?.installmentNumber,
+        installmentCount: existing?.installmentCount,
+        seriesId: existing?.seriesId,
+        cardInvoiceEndDate: existing?.cardInvoiceEndDate,
+      );
+
+      if (editing) {
+        await TransactionStore.instance.update(transaction);
+      } else {
+        await TransactionStore.instance.add(transaction);
+      }
     }
 
     if (!mounted) return;
@@ -118,6 +163,56 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
     await TransactionStore.instance.delete(existing.id);
     if (!mounted) return;
     Navigator.of(context).pop(true);
+  }
+
+  DateTime _addMonths(DateTime date, int months) {
+    final targetMonth = date.month - 1 + months;
+    final year = date.year + targetMonth ~/ 12;
+    final month = targetMonth % 12 + 1;
+    final lastDay = DateTime(year, month + 1, 0).day;
+    return DateTime(
+      year,
+      month,
+      date.day.clamp(1, lastDay),
+      date.hour,
+      date.minute,
+      date.second,
+    );
+  }
+
+  Future<void> _chooseInstallments() async {
+    final selected = await showModalBottomSheet<int>(
+      context: context,
+      backgroundColor: AtlasColors.surface,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 4, 20, 12),
+              child: Text(
+                'Parcelamento',
+                style: TextStyle(color: AtlasColors.white, fontSize: 18, fontWeight: FontWeight.w700),
+              ),
+            ),
+            ...List.generate(12, (index) => index + 1).map(
+              (count) => ListTile(
+                title: Text(
+                  count == 1 ? 'À vista' : '$count vezes',
+                  style: const TextStyle(color: AtlasColors.white),
+                ),
+                trailing: count == installmentCount
+                    ? const Icon(Icons.check_rounded, color: AtlasColors.green)
+                    : null,
+                onTap: () => Navigator.pop(context, count),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (selected != null) setState(() => installmentCount = selected);
   }
 
   Future<void> _chooseDate() async {
@@ -274,6 +369,9 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
       setState(() {
         sourceType = selected.type;
         sourceId = selected.id;
+        if (selected.type != TransactionSourceType.card) {
+          installmentCount = 1;
+        }
       });
     }
   }
@@ -465,6 +563,19 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
                 title: 'Destino',
                 subtitle: _destinationLabel,
                 onTap: _chooseDestination,
+              ),
+            ],
+            if (!editing &&
+                type == TransactionType.expense &&
+                sourceType == TransactionSourceType.card) ...[
+              const SizedBox(height: 12),
+              _OptionTile(
+                icon: Icons.credit_card_outlined,
+                title: 'Parcelamento',
+                subtitle: installmentCount == 1
+                    ? 'À vista'
+                    : '$installmentCount vezes • primeira parcela hoje',
+                onTap: _chooseInstallments,
               ),
             ],
             const SizedBox(height: 12),
