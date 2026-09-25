@@ -180,4 +180,64 @@ void main() {
     expect(ledger.netAvailableBalance, 1300);
   });
 
+  test('links a card payment to the exact invoice cycle', () {
+    final card = const AtlasCard(
+      id: 'card',
+      name: 'Cartão',
+      lastFourDigits: '1234',
+      closingDay: 20,
+      dueDay: 10,
+      limit: 5000,
+    );
+
+    final invoice = FinancialLedger(
+      accounts: const [],
+      cards: [card],
+      transactions: [
+        AtlasTransaction(
+          id: 'purchase',
+          type: TransactionType.expense,
+          amount: 700,
+          description: 'Compra',
+          createdAt: DateTime(2026, 9, 15),
+          transactionDate: DateTime(2026, 9, 15),
+          sourceType: TransactionSourceType.card,
+          sourceId: 'card',
+        ),
+      ],
+    ).currentCardInvoice('card', referenceDate: DateTime(2026, 9, 25));
+
+    final ledger = FinancialLedger(
+      accounts: const [],
+      cards: [card],
+      transactions: [
+        AtlasTransaction(
+          id: 'purchase',
+          type: TransactionType.expense,
+          amount: 700,
+          description: 'Compra',
+          createdAt: DateTime(2026, 9, 15),
+          transactionDate: DateTime(2026, 9, 15),
+          sourceType: TransactionSourceType.card,
+          sourceId: 'card',
+        ),
+        AtlasTransaction(
+          id: 'payment',
+          type: TransactionType.transfer,
+          amount: 700,
+          description: 'Pagamento',
+          createdAt: DateTime(2026, 9, 25),
+          transactionDate: DateTime(2026, 9, 25),
+          sourceType: TransactionSourceType.account,
+          sourceId: 'account',
+          destinationType: TransactionSourceType.card,
+          destinationId: 'card',
+          cardInvoiceEndDate: invoice.endDate,
+        ),
+      ],
+    );
+
+    expect(ledger.cardInvoice('card', referenceDate: DateTime(2026, 9, 25)), 0);
+  });
+
 }
