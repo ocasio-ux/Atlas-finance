@@ -18,12 +18,15 @@ class FinancialLedger {
   final Iterable<AtlasCard> cards;
   final Iterable<AtlasTransaction> transactions;
 
-  double accountBalance(String accountId) {
+  double accountBalance(String accountId, {DateTime? referenceDate}) {
     final account = _findAccount(accountId);
     if (account == null) return 0;
 
+    final reference = referenceDate ?? DateTime.now();
     var balance = account.initialBalance;
     for (final transaction in transactions) {
+      if (transaction.transactionDate.isAfter(reference)) continue;
+
       final affectsAsSource =
           transaction.sourceType == TransactionSourceType.account &&
           transaction.sourceId == accountId;
@@ -50,10 +53,47 @@ class FinancialLedger {
     return balance;
   }
 
-  double get consolidatedBalance => accounts.fold<double>(
+  double consolidatedBalance({DateTime? referenceDate}) => accounts.fold<double>(
         0,
-        (sum, account) => sum + accountBalance(account.id),
+        (sum, account) =>
+            sum + accountBalance(account.id, referenceDate: referenceDate),
       );
+
+  double expenseTotalByCategory(
+    TransactionCategory category, {
+    required DateTime start,
+    required DateTime end,
+  }) {
+    if (end.isBefore(start)) return 0;
+
+    return transactions
+        .where(
+          (transaction) =>
+              transaction.type == TransactionType.expense &&
+              transaction.category == category &&
+              !transaction.transactionDate.isBefore(start) &&
+              !transaction.transactionDate.isAfter(end),
+        )
+        .fold<double>(0, (total, transaction) => total + transaction.amount);
+  }
+
+  double incomeTotalByCategory(
+    TransactionCategory category, {
+    required DateTime start,
+    required DateTime end,
+  }) {
+    if (end.isBefore(start)) return 0;
+
+    return transactions
+        .where(
+          (transaction) =>
+              transaction.type == TransactionType.income &&
+              transaction.category == category &&
+              !transaction.transactionDate.isBefore(start) &&
+              !transaction.transactionDate.isAfter(end),
+        )
+        .fold<double>(0, (total, transaction) => total + transaction.amount);
+  }
 
   CardInvoice currentCardInvoice(String cardId, {DateTime? referenceDate}) {
     final card = _findCard(cardId);
