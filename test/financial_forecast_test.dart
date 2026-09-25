@@ -20,6 +20,58 @@ void main() {
     createdAt: date,
   );
 
+  test('includes monthly recurring commitments in the forecast', () {
+    final recurring = AtlasTransaction(
+      id: 'gym',
+      type: TransactionType.expense,
+      amount: 99.90,
+      description: 'Academia',
+      createdAt: DateTime(2026, 6, 10),
+      transactionDate: DateTime(2026, 6, 10),
+      repeat: TransactionRepeat.monthly,
+    );
+
+    final forecast = engine.forMonth(
+      transactions: [
+        recurring,
+        transaction(
+          'salary',
+          TransactionType.income,
+          3000,
+          DateTime(2026, 7, 20),
+        ),
+      ],
+      now: DateTime(2026, 7, 15, 12),
+    );
+
+    expect(forecast.expectedIncome, 3000);
+    expect(forecast.expectedExpenses, closeTo(99.90, 0.001));
+    expect(forecast.commitments.map((item) => item.description), [
+      'Academia',
+      'salary',
+    ]);
+    expect(forecast.commitments.first.transactionDate, DateTime(2026, 7, 10));
+  });
+
+  test('uses transaction date rather than record creation date for current balance', () {
+    final future = AtlasTransaction(
+      id: 'future',
+      type: TransactionType.expense,
+      amount: 500,
+      description: 'Futuro',
+      createdAt: DateTime(2026, 7, 15, 12),
+      transactionDate: DateTime(2026, 7, 20),
+    );
+
+    final forecast = engine.forMonth(
+      transactions: [future],
+      now: DateTime(2026, 7, 15, 12),
+    );
+
+    expect(forecast.currentBalance, 0);
+    expect(forecast.expectedExpenses, 500);
+  });
+
   test(
     'projects remaining month without counting transfers as income or expense',
     () {
