@@ -129,4 +129,55 @@ void main() {
     expect(ledger.accountBalance('destination'), 700);
     expect(ledger.consolidatedBalance, 1200);
   });
+  test('payment from account to card reduces cash, card debt and frees limit', () {
+    final account = const AtlasAccount(
+      id: 'checking',
+      name: 'Conta',
+      type: AccountType.checking,
+      initialBalance: 2000,
+    );
+    final card = const AtlasCard(
+      id: 'card',
+      name: 'Cartão',
+      lastFourDigits: '1234',
+      closingDay: 20,
+      dueDay: 10,
+      limit: 5000,
+    );
+
+    final ledger = FinancialLedger(
+      accounts: [account],
+      cards: [card],
+      transactions: [
+        AtlasTransaction(
+          id: 'purchase',
+          type: TransactionType.expense,
+          amount: 700,
+          description: 'Compra',
+          createdAt: DateTime(2026, 9, 15),
+          transactionDate: DateTime(2026, 9, 15),
+          sourceType: TransactionSourceType.card,
+          sourceId: 'card',
+        ),
+        AtlasTransaction(
+          id: 'payment',
+          type: TransactionType.transfer,
+          amount: 700,
+          description: 'Pagamento da fatura',
+          createdAt: DateTime(2026, 9, 25),
+          transactionDate: DateTime(2026, 9, 25),
+          sourceType: TransactionSourceType.account,
+          sourceId: 'checking',
+          destinationType: TransactionSourceType.card,
+          destinationId: 'card',
+        ),
+      ],
+    );
+
+    expect(ledger.accountBalance('checking'), 1300);
+    expect(ledger.cardOutstandingDebt('card'), 0);
+    expect(ledger.cardAvailableLimit('card'), 5000);
+    expect(ledger.netAvailableBalance, 1300);
+  });
+
 }
