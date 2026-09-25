@@ -93,28 +93,40 @@ void main() {
     expect(ledger.netAvailableBalance, 4300);
   });
 
-  test('ignores transfers until the transaction model has a destination', () {
-    final account = const AtlasAccount(
-      id: 'checking',
-      name: 'Conta',
+  test('moves value between two accounts without changing consolidated balance', () {
+    final source = const AtlasAccount(
+      id: 'source',
+      name: 'Origem',
       type: AccountType.checking,
       initialBalance: 1000,
     );
+    final destination = const AtlasAccount(
+      id: 'destination',
+      name: 'Destino',
+      type: AccountType.savings,
+      initialBalance: 200,
+    );
 
     final ledger = FinancialLedger(
-      accounts: [account],
+      accounts: [source, destination],
       cards: const [],
       transactions: [
-        transaction(
+        AtlasTransaction(
           id: 'transfer',
           type: TransactionType.transfer,
           amount: 500,
+          description: 'Transferência',
+          createdAt: DateTime(2026, 9, 25),
           sourceType: TransactionSourceType.account,
-          sourceId: 'checking',
+          sourceId: 'source',
+          destinationType: TransactionSourceType.account,
+          destinationId: 'destination',
         ),
       ],
     );
 
-    expect(ledger.accountBalance('checking'), 1000);
+    expect(ledger.accountBalance('source'), 500);
+    expect(ledger.accountBalance('destination'), 700);
+    expect(ledger.consolidatedBalance, 1200);
   });
 }
