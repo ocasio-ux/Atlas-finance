@@ -64,7 +64,8 @@ class FinancialLedger {
         startDate: now,
         endDate: now,
         dueDate: now,
-        amount: 0,
+        billedAmount: 0,
+        paidAmount: 0,
       );
     }
 
@@ -136,7 +137,8 @@ class FinancialLedger {
     DateTime cycleEnd,
     DateTime dueDate,
   ) {
-    var amount = 0.0;
+    var billedAmount = 0.0;
+    var paidAmount = 0.0;
 
     for (final transaction in transactions) {
       final cardMovement =
@@ -153,23 +155,27 @@ class FinancialLedger {
           !transaction.transactionDate.isBefore(cycleStart) &&
           !transaction.transactionDate.isAfter(cycleEnd)) {
         if (transaction.type == TransactionType.expense) {
-          amount += transaction.amount;
+          billedAmount += transaction.amount;
         } else if (transaction.type == TransactionType.income) {
-          amount -= transaction.amount;
+          billedAmount -= transaction.amount;
         }
       }
 
       if (invoicePayment) {
-        amount -= transaction.amount;
+        paidAmount += transaction.amount;
       }
     }
+
+    billedAmount = billedAmount < 0 ? 0 : billedAmount;
+    paidAmount = paidAmount.clamp(0, billedAmount).toDouble();
 
     return CardInvoice(
       cardId: card.id,
       startDate: cycleStart,
       endDate: cycleEnd,
       dueDate: dueDate,
-      amount: amount < 0 ? 0 : amount,
+      billedAmount: billedAmount,
+      paidAmount: paidAmount,
     );
   }
 
