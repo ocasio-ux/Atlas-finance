@@ -1,3 +1,4 @@
+import '../../core/finance/financial_ledger.dart';
 import '../transactions/transaction_model.dart';
 
 class CategoryInsight {
