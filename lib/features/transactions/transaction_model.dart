@@ -33,6 +33,7 @@ class AtlasTransaction {
     this.seriesId,
     this.installmentNumber,
     this.installmentCount,
+    this.cardInvoiceEndDate,
   }) : transactionDate = transactionDate ?? createdAt;
 
   final String id;
@@ -58,6 +59,7 @@ class AtlasTransaction {
   final String? seriesId;
   final int? installmentNumber;
   final int? installmentCount;
+  final DateTime? cardInvoiceEndDate;
 
   bool get isRecurring => repeat != TransactionRepeat.none;
   bool get isInstallment =>
@@ -85,6 +87,7 @@ class AtlasTransaction {
     String? seriesId,
     int? installmentNumber,
     int? installmentCount,
+    DateTime? cardInvoiceEndDate,
   }) => AtlasTransaction(
     id: id,
     type: type ?? this.type,
@@ -101,6 +104,7 @@ class AtlasTransaction {
     seriesId: seriesId ?? this.seriesId,
     installmentNumber: installmentNumber ?? this.installmentNumber,
     installmentCount: installmentCount ?? this.installmentCount,
+    cardInvoiceEndDate: cardInvoiceEndDate ?? this.cardInvoiceEndDate,
   );
 
   Map<String, Object?> toJson() => {
@@ -119,6 +123,7 @@ class AtlasTransaction {
     'seriesId': seriesId,
     'installmentNumber': installmentNumber,
     'installmentCount': installmentCount,
+    'cardInvoiceEndDate': cardInvoiceEndDate?.toIso8601String(),
   };
 
   factory AtlasTransaction.fromJson(Map<String, dynamic> json) {
@@ -127,7 +132,8 @@ class AtlasTransaction {
     final destinationTypeName = json['destinationType'] as String?;
     final repeatName = json['repeat'] as String?;
     final createdAt = DateTime.parse(json['createdAt'] as String);
-    final transactionDateRaw = json['transactionDate'] as String?;\n    final cardInvoiceEndDateRaw = json['cardInvoiceEndDate'] as String?;
+    final transactionDateRaw = json['transactionDate'] as String?;
+    final cardInvoiceEndDateRaw = json['cardInvoiceEndDate'] as String?;    final cardInvoiceEndDateRaw = json['cardInvoiceEndDate'] as String?;
 
     return AtlasTransaction(
       id: json['id'] as String,
@@ -167,6 +173,7 @@ class AtlasTransaction {
       seriesId: json['seriesId'] as String?,
       installmentNumber: (json['installmentNumber'] as num?)?.toInt(),
       installmentCount: (json['installmentCount'] as num?)?.toInt(),
+      cardInvoiceEndDate: cardInvoiceEndDateRaw == null ? null : DateTime.parse(cardInvoiceEndDateRaw),
     );
   }
 }
