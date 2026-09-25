@@ -97,7 +97,7 @@ class FinancialLedger {
           transaction.sourceId != cardId) {
         continue;
       }
-      if (transaction.transactionDate.isAfter(cycleStart) &&
+      if (!transaction.transactionDate.isBefore(cycleStart) &&
           !transaction.transactionDate.isAfter(cycleEnd)) {
         if (transaction.type == TransactionType.expense) {
           amount += transaction.amount;
