@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../app/theme/atlas_colors.dart';
+import '../../core/finance/financial_commitment.dart';
 import '../../shared/formatters/currency_formatter.dart';
 import '../transactions/transaction_model.dart';
 import '../transactions/transaction_store.dart';
@@ -108,6 +109,87 @@ class _PlanningPageState extends State<PlanningPage> {
         category: category,
         monthlyLimit: value,
         createdAt: DateTime.now(),
+      ),
+    );
+  }
+
+  Future<void> _addCommitment() async {
+    final title = TextEditingController();
+    final amount = TextEditingController();
+    var dueDate = DateTime.now();
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setLocalState) => AlertDialog(
+          title: const Text('Novo compromisso'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: title,
+                decoration: const InputDecoration(
+                  labelText: 'Descrição',
+                  hintText: 'Ex.: Aluguel',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: amount,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(labelText: 'Valor'),
+              ),
+              const SizedBox(height: 12),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.event_outlined),
+                title: const Text('Vencimento'),
+                subtitle: Text(_dateLabel(dueDate)),
+                onTap: () async {
+                  final selected = await showDatePicker(
+                    context: context,
+                    initialDate: dueDate,
+                    firstDate: DateTime(2000),
+                    lastDate: DateTime(2100),
+                  );
+                  if (selected != null) {
+                    setLocalState(() => dueDate = DateTime(
+                      selected.year,
+                      selected.month,
+                      selected.day,
+                      23,
+                      59,
+                      59,
+                    ));
+                  }
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Salvar'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (saved != true) return;
+    final value = double.tryParse(amount.text.replaceAll(',', '.'));
+    if (title.text.trim().isEmpty || value == null || value <= 0) return;
+
+    await planning.saveCommitment(
+      FinancialCommitment(
+        id: 'commitment-' + DateTime.now().microsecondsSinceEpoch.toString(),
+        title: title.text.trim(),
+        amount: value,
+        dueDate: dueDate,
       ),
     );
   }
@@ -230,6 +312,87 @@ class _PlanningPageState extends State<PlanningPage> {
             );
           }),
         const SizedBox(height: 28),
+        _Header(
+          title: 'Compromissos',
+          action: 'Adicionar',
+          onTap: _addCommitment,
+        ),
+        const SizedBox(height: 12),
+        if (planning.commitments.isEmpty)
+          const _Empty(
+            text: 'Cadastre contas e pagamentos futuros para o Atlas considerar no planejamento.',
+          )
+        else
+          ...planning.commitments.map((commitment) {
+            final status = commitment.status(DateTime.now());
+            final statusColor = switch (status) {
+              FinancialCommitmentStatus.overdue => AtlasColors.expense,
+              FinancialCommitmentStatus.paid => AtlasColors.green,
+              FinancialCommitmentStatus.cancelled => AtlasColors.textMuted,
+              FinancialCommitmentStatus.pending => AtlasColors.green,
+            };
+            return _Card(
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: statusColor.withValues(alpha: 0.16),
+                    child: Icon(Icons.receipt_long_outlined, color: statusColor),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          commitment.title,
+                          style: const TextStyle(
+                            color: AtlasColors.white,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          CurrencyFormatter.brl(commitment.amount) +
+                              ' • ' +
+                              _dateLabel(commitment.dueDate),
+                          style: const TextStyle(color: AtlasColors.textMuted),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _commitmentStatusLabel(status),
+                          style: TextStyle(
+                            color: statusColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  PopupMenuButton<String>(
+                    onSelected: (value) async {
+                      if (value == 'cancel') {
+                        await planning.cancelCommitment(commitment.id);
+                      } else if (value == 'delete') {
+                        await planning.deleteCommitment(commitment.id);
+                      }
+                    },
+                    itemBuilder: (context) => const [
+                      PopupMenuItem(
+                        value: 'cancel',
+                        child: Text('Cancelar compromisso'),
+                      ),
+                      PopupMenuItem(
+                        value: 'delete',
+                        child: Text('Excluir'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          }),
+        const SizedBox(height: 28),
         _Header(title: 'Metas', action: 'Adicionar', onTap: _addGoal),
         const SizedBox(height: 12),
         if (planning.goals.isEmpty)
@@ -334,6 +497,21 @@ class _Empty extends StatelessWidget {
     child: Text(text, style: const TextStyle(color: AtlasColors.textMuted)),
   );
 }
+
+String _dateLabel(DateTime date) =>
+    date.day.toString().padLeft(2, '0') +
+    '/' +
+    date.month.toString().padLeft(2, '0') +
+    '/' +
+    date.year.toString();
+
+String _commitmentStatusLabel(FinancialCommitmentStatus status) =>
+    switch (status) {
+      FinancialCommitmentStatus.pending => 'Pendente',
+      FinancialCommitmentStatus.paid => 'Pago',
+      FinancialCommitmentStatus.overdue => 'Atrasado',
+      FinancialCommitmentStatus.cancelled => 'Cancelado',
+    };
 
 String _categoryLabel(TransactionCategory value) => switch (value) {
   TransactionCategory.food => 'Alimentação',
