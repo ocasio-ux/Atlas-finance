@@ -103,6 +103,10 @@ class FinancialLedger {
           amount += transaction.amount;
         } else if (transaction.type == TransactionType.income) {
           amount -= transaction.amount;
+        } else if (transaction.type == TransactionType.transfer &&
+            transaction.destinationType == TransactionSourceType.card &&
+            transaction.destinationId == cardId) {
+          amount -= transaction.amount;
         }
       }
     }
@@ -120,9 +124,9 @@ class FinancialLedger {
   double cardInvoice(String cardId, {DateTime? referenceDate}) =>
       currentCardInvoice(cardId, referenceDate: referenceDate).amount;
 
-  /// Total card debt represented by recorded card purchases minus refunds.
+  /// Total card debt represented by purchases/refunds minus recorded payments.
   ///
-  /// Historical invoices remain outstanding until Atlas models payments.
+  /// A transfer from an account to a card is treated as a card payment.
   double cardOutstandingDebt(String cardId) {
     if (_findCard(cardId) == null) return 0;
 
@@ -135,6 +139,10 @@ class FinancialLedger {
       if (transaction.type == TransactionType.expense) {
         debt += transaction.amount;
       } else if (transaction.type == TransactionType.income) {
+        debt -= transaction.amount;
+      } else if (transaction.type == TransactionType.transfer &&
+          transaction.destinationType == TransactionSourceType.card &&
+          transaction.destinationId == cardId) {
         debt -= transaction.amount;
       }
     }
