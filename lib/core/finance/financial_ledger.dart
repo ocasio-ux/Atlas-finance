@@ -127,6 +127,71 @@ class FinancialLedger {
     );
   }
 
+  /// Returns recent invoice cycles, newest first.
+  List<CardInvoice> cardInvoiceHistory(
+    String cardId, {
+    DateTime? referenceDate,
+    int monthsBack = 5,
+  }) {
+    final card = _findCard(cardId);
+    if (card == null) return const [];
+
+    final reference = referenceDate ?? DateTime.now();
+    final currentEnd = _closingDateOnOrBefore(
+      reference.year,
+      reference.month,
+      card.closingDay,
+      reference,
+    );
+
+    return List.generate(monthsBack + 1, (index) {
+      final end = _shiftMonth(currentEnd, -index);
+      return _invoiceForClosingDate(card, end);
+    });
+  }
+
+  CardInvoice _invoiceForClosingDate(AtlasCard card, DateTime cycleEnd) {
+    final previous = _shiftMonth(cycleEnd, -1);
+    final cycleStart = _date(
+      previous.year,
+      previous.month,
+      card.closingDay,
+    ).add(const Duration(days: 1));
+    final dueDate = _dueDate(cycleEnd, card.dueDay, card.closingDay);
+
+    var amount = 0.0;
+    for (final transaction in transactions) {
+      final cardMovement =
+          transaction.sourceType == TransactionSourceType.card &&
+          transaction.sourceId == card.id;
+      final invoicePayment =
+          transaction.type == TransactionType.transfer &&
+          transaction.destinationType == TransactionSourceType.card &&
+          transaction.destinationId == card.id &&
+          transaction.cardInvoiceEndDate != null &&
+          _sameDate(transaction.cardInvoiceEndDate!, cycleEnd);
+
+      if (cardMovement &&
+          !transaction.transactionDate.isBefore(cycleStart) &&
+          !transaction.transactionDate.isAfter(cycleEnd)) {
+        if (transaction.type == TransactionType.expense) {
+          amount += transaction.amount;
+        } else if (transaction.type == TransactionType.income) {
+          amount -= transaction.amount;
+        }
+      }
+      if (invoicePayment) amount -= transaction.amount;
+    }
+
+    return CardInvoice(
+      cardId: card.id,
+      startDate: cycleStart,
+      endDate: cycleEnd,
+      dueDate: dueDate,
+      amount: amount < 0 ? 0 : amount,
+    );
+  }
+
   /// Backwards-compatible shorthand for the current card invoice amount.
   double cardInvoice(String cardId, {DateTime? referenceDate}) =>
       currentCardInvoice(cardId, referenceDate: referenceDate).amount;
