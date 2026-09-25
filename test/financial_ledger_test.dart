@@ -240,4 +240,77 @@ void main() {
     expect(ledger.cardInvoice('card', referenceDate: DateTime(2026, 9, 25)), 0);
   });
 
+  test('calculates each installment in its corresponding billing cycle', () {
+    final card = const AtlasCard(
+      id: 'card',
+      name: 'Cartão',
+      lastFourDigits: '1234',
+      closingDay: 20,
+      dueDay: 10,
+      limit: 5000,
+    );
+
+    final transactions = [
+      AtlasTransaction(
+        id: 'installment-1',
+        type: TransactionType.expense,
+        amount: 400,
+        description: 'Compra parcelada',
+        createdAt: DateTime(2026, 9, 15),
+        transactionDate: DateTime(2026, 9, 15),
+        sourceType: TransactionSourceType.card,
+        sourceId: 'card',
+        seriesId: 'series',
+        installmentNumber: 1,
+        installmentCount: 3,
+      ),
+      AtlasTransaction(
+        id: 'installment-2',
+        type: TransactionType.expense,
+        amount: 400,
+        description: 'Compra parcelada',
+        createdAt: DateTime(2026, 9, 15),
+        transactionDate: DateTime(2026, 10, 15),
+        sourceType: TransactionSourceType.card,
+        sourceId: 'card',
+        seriesId: 'series',
+        installmentNumber: 2,
+        installmentCount: 3,
+      ),
+      AtlasTransaction(
+        id: 'installment-3',
+        type: TransactionType.expense,
+        amount: 400,
+        description: 'Compra parcelada',
+        createdAt: DateTime(2026, 9, 15),
+        transactionDate: DateTime(2026, 11, 15),
+        sourceType: TransactionSourceType.card,
+        sourceId: 'card',
+        seriesId: 'series',
+        installmentNumber: 3,
+        installmentCount: 3,
+      ),
+    ];
+
+    final ledger = FinancialLedger(
+      accounts: const [],
+      cards: [card],
+      transactions: transactions,
+    );
+
+    expect(
+      ledger.cardInvoice('card', referenceDate: DateTime(2026, 9, 25)),
+      400,
+    );
+    expect(
+      ledger.cardInvoice('card', referenceDate: DateTime(2026, 10, 25)),
+      400,
+    );
+    expect(
+      ledger.cardInvoice('card', referenceDate: DateTime(2026, 11, 25)),
+      400,
+    );
+    expect(ledger.cardOutstandingDebt('card'), 1200);
+  });
+
 }
