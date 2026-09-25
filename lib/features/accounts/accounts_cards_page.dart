@@ -105,6 +105,13 @@ class _AccountsCardsPageState extends State<AccountsCardsPage> {
     CardInvoice invoice,
   ) async {
     final status = invoice.status(DateTime.now());
+    final ledger = FinancialLedger(
+      accounts: accounts.accounts,
+      cards: cards.cards,
+      transactions: transactions.transactions,
+    );
+    final movements = ledger.cardInvoiceTransactions(card.id, invoice);
+
     await showModalBottomSheet<void>(
       context: context,
       backgroundColor: AtlasColors.surface,
@@ -150,6 +157,21 @@ class _AccountsCardsPageState extends State<AccountsCardsPage> {
                 'Vencimento: ${_shortDate(invoice.dueDate)}',
                 style: const TextStyle(color: AtlasColors.textMuted),
               ),
+              if (movements.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                const Text(
+                  'Movimentações',
+                  style: TextStyle(
+                    color: AtlasColors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...movements.map(
+                  (transaction) => _InvoiceMovementTile(transaction: transaction),
+                ),
+              ],
               if (invoice.amount > 0) ...[
                 const SizedBox(height: 16),
                 SizedBox(
@@ -601,6 +623,72 @@ class _CardSourceCard extends StatelessWidget {
   );
 }
 
+class _InvoiceMovementTile extends StatelessWidget {
+  const _InvoiceMovementTile({required this.transaction});
+
+  final AtlasTransaction transaction;
+
+  @override
+  Widget build(BuildContext context) {
+    final isRefund = transaction.type == TransactionType.income;
+    final prefix = isRefund ? '+ ' : '- ';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: AtlasColors.background,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              isRefund ? Icons.undo_rounded : Icons.shopping_bag_outlined,
+              color: AtlasColors.white,
+              size: 18,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  transaction.description.isEmpty
+                      ? _transactionCategoryLabel(transaction.category)
+                      : transaction.description,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AtlasColors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${_shortDate(transaction.transactionDate)} • ${_transactionCategoryLabel(transaction.category)}',
+                  style: const TextStyle(
+                    color: AtlasColors.textMuted,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            '$prefix${CurrencyFormatter.brl(transaction.amount)}',
+            style: const TextStyle(
+              color: AtlasColors.white,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _InvoiceValueRow extends StatelessWidget {
   const _InvoiceValueRow({
     required this.label,
@@ -758,6 +846,18 @@ class _EmptyCard extends StatelessWidget {
     ),
   );
 }
+
+String _transactionCategoryLabel(TransactionCategory category) => switch (category) {
+  TransactionCategory.food => 'Alimentação',
+  TransactionCategory.transport => 'Transporte',
+  TransactionCategory.housing => 'Moradia',
+  TransactionCategory.health => 'Saúde',
+  TransactionCategory.leisure => 'Lazer',
+  TransactionCategory.shopping => 'Compras',
+  TransactionCategory.salary => 'Salário',
+  TransactionCategory.education => 'Educação',
+  TransactionCategory.other => 'Outros',
+};
 
 String _accountTypeLabel(AccountType type) => switch (type) {
   AccountType.checking => 'Conta corrente',
