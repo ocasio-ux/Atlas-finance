@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:atlas_finance/core/finance/financial_commitment.dart';
 
 void main() {
-  final dueDate = DateTime(2026, 9, 20);
   final referenceDate = DateTime(2026, 9, 25);
 
   test('new commitment is pending before its due date', () {
@@ -38,6 +37,23 @@ void main() {
     );
 
     expect(commitment.status(referenceDate), FinancialCommitmentStatus.paid);
+  });
+
+  test('copyWith can link the payment transaction', () {
+    const commitment = FinancialCommitment(
+      id: 'c1',
+      title: 'Internet',
+      amount: 120,
+      dueDate: DateTime(2026, 9, 20),
+    );
+
+    final settled = commitment.copyWith(settledTransactionId: 't1');
+
+    expect(settled.settledTransactionId, 't1');
+    expect(
+      settled.status(referenceDate),
+      FinancialCommitmentStatus.paid,
+    );
   });
 
   test('cancelled commitment remains cancelled', () {
