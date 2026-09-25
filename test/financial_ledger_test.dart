@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:atlas_finance/features/accounts/account_model.dart';
 import 'package:atlas_finance/features/cards/card_model.dart';
+import 'package:atlas_finance/core/finance/card_invoice.dart';
 import 'package:atlas_finance/core/finance/financial_ledger.dart';
 import 'package:atlas_finance/features/transactions/transaction_model.dart';
 
