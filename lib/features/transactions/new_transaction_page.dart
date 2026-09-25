@@ -24,6 +24,7 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
   String? sourceId;
   TransactionSourceType? destinationType;
   String? destinationId;
+  late DateTime transactionDate;
   final amountController = TextEditingController();
   final descriptionController = TextEditingController();
   bool saving = false;
@@ -40,6 +41,7 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
     sourceId = transaction?.sourceId;
     destinationType = transaction?.destinationType;
     destinationId = transaction?.destinationId;
+    transactionDate = transaction?.transactionDate ?? DateTime.now();
     if (transaction != null) {
       amountController.text = transaction.amount
           .toStringAsFixed(2)
@@ -74,6 +76,7 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
           ? _defaultDescription(type)
           : descriptionController.text.trim(),
       createdAt: existing?.createdAt ?? now,
+      transactionDate: transactionDate,
       category: category,
       sourceType: sourceType,
       sourceId: sourceId,
@@ -117,6 +120,32 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
     Navigator.of(context).pop(true);
   }
 
+  Future<void> _chooseDate() async {
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: transactionDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+      helpText: 'Selecione a data da movimentação',
+      cancelText: 'Cancelar',
+      confirmText: 'Selecionar',
+    );
+    if (selected == null) return;
+    setState(() {
+      transactionDate = DateTime(selected.year, selected.month, selected.day, transactionDate.hour, transactionDate.minute, transactionDate.second);
+    });
+  }
+
+  String _formattedTransactionDate() {
+    final now = DateTime.now();
+    final date = DateTime(transactionDate.year, transactionDate.month, transactionDate.day);
+    final today = DateTime(now.year, now.month, now.day);
+    final difference = date.difference(today).inDays;
+    if (difference == 0) return 'Hoje';
+    if (difference == -1) return 'Ontem';
+    if (difference == 1) return 'Amanhã';
+    return '${transactionDate.day.toString().padLeft(2, '0')}/${transactionDate.month.toString().padLeft(2, '0')}/${transactionDate.year}';
+  }
   Future<void> _chooseCategory() async {
     final selected = await showModalBottomSheet<TransactionCategory>(
       context: context,
@@ -439,10 +468,11 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
               ),
             ],
             const SizedBox(height: 12),
-            const _OptionTile(
+            _OptionTile(
               icon: Icons.calendar_today_outlined,
               title: 'Data',
-              subtitle: 'Hoje',
+              subtitle: _formattedTransactionDate(),
+              onTap: _chooseDate,
             ),
             const SizedBox(height: 28),
             SizedBox(
