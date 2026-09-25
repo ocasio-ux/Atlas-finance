@@ -20,6 +20,32 @@ void main() {
     createdAt: date,
   );
 
+  test('stops monthly recurrence after its end date', () {
+    final recurring = AtlasTransaction(
+      id: 'course',
+      type: TransactionType.expense,
+      amount: 200,
+      description: 'Curso',
+      createdAt: DateTime(2026, 6, 10),
+      transactionDate: DateTime(2026, 6, 10),
+      repeat: TransactionRepeat.monthly,
+      repeatEndDate: DateTime(2026, 8, 10),
+    );
+
+    final forecast = engine.forMonth(
+      transactions: [recurring],
+      now: DateTime(2026, 7, 15),
+    );
+
+    expect(forecast.expectedExpenses, 200);
+
+    final september = engine.forMonth(
+      transactions: [recurring],
+      now: DateTime(2026, 9, 1),
+    );
+    expect(september.expectedExpenses, 0);
+  });
+
   test('includes monthly recurring commitments in the forecast', () {
     final recurring = AtlasTransaction(
       id: 'gym',
