@@ -45,44 +45,6 @@ class _AccountsCardsPageState extends State<AccountsCardsPage> {
     if (mounted) setState(() {});
   }
 
-  double _accountBalanceLegacy(AtlasAccount account) {
-    var balance = account.initialBalance;
-    for (final transaction in transactions.transactions) {
-      if (transaction.sourceType != TransactionSourceType.account ||
-          transaction.sourceId != account.id) {
-        continue;
-      }
-      switch (transaction.type) {
-        case TransactionType.income:
-          balance += transaction.amount;
-        case TransactionType.expense:
-          balance -= transaction.amount;
-        case TransactionType.transfer:
-          break;
-      }
-    }
-    return balance;
-  }
-
-  double _cardInvoiceLegacy(AtlasCard card) {
-    var invoice = 0.0;
-    for (final transaction in transactions.transactions) {
-      if (transaction.sourceType != TransactionSourceType.card ||
-          transaction.sourceId != card.id) {
-        continue;
-      }
-      switch (transaction.type) {
-        case TransactionType.expense:
-          invoice += transaction.amount;
-        case TransactionType.income:
-          invoice -= transaction.amount;
-        case TransactionType.transfer:
-          break;
-      }
-    }
-    return invoice < 0 ? 0 : invoice;
-  }
-
   Future<void> _addAccount() async {
     final nameController = TextEditingController();
     final balanceController = TextEditingController();
