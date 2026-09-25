@@ -19,6 +19,7 @@ void main() {
       amount: amount,
       description: id,
       createdAt: DateTime(2026, 9, 25),
+      transactionDate: DateTime(2026, 9, 15),
       sourceType: sourceType,
       sourceId: sourceId,
     );
@@ -238,6 +239,85 @@ void main() {
     );
 
     expect(ledger.cardInvoice('card', referenceDate: DateTime(2026, 9, 25)), 0);
+  });
+
+  test('reports invoice status from payment and dates', () {
+    final card = const AtlasCard(
+      id: 'card',
+      name: 'Cartão',
+      lastFourDigits: '1234',
+      closingDay: 20,
+      dueDay: 10,
+      limit: 5000,
+    );
+
+    final purchase = AtlasTransaction(
+      id: 'purchase',
+      type: TransactionType.expense,
+      amount: 700,
+      description: 'Compra',
+      createdAt: DateTime(2026, 9, 15),
+      transactionDate: DateTime(2026, 9, 15),
+      sourceType: TransactionSourceType.card,
+      sourceId: 'card',
+    );
+
+    final openInvoice = FinancialLedger(
+      accounts: const [],
+      cards: [card],
+      transactions: [purchase],
+    ).currentCardInvoice(
+      'card',
+      referenceDate: DateTime(2026, 9, 15),
+    );
+    expect(openInvoice.status(DateTime(2026, 9, 15)), CardInvoiceStatus.open);
+
+    final closedInvoice = FinancialLedger(
+      accounts: const [],
+      cards: [card],
+      transactions: [purchase],
+    ).currentCardInvoice(
+      'card',
+      referenceDate: DateTime(2026, 9, 25),
+    );
+    expect(closedInvoice.status(DateTime(2026, 9, 25)), CardInvoiceStatus.closed);
+
+    final overdueInvoice = FinancialLedger(
+      accounts: const [],
+      cards: [card],
+      transactions: [purchase],
+    ).currentCardInvoice(
+      'card',
+      referenceDate: DateTime(2026, 10, 11),
+    );
+    expect(overdueInvoice.status(DateTime(2026, 10, 11)), CardInvoiceStatus.overdue);
+
+    final paidLedger = FinancialLedger(
+      accounts: const [],
+      cards: [card],
+      transactions: [
+        purchase,
+        AtlasTransaction(
+          id: 'payment',
+          type: TransactionType.transfer,
+          amount: 700,
+          description: 'Pagamento',
+          createdAt: DateTime(2026, 9, 25),
+          transactionDate: DateTime(2026, 9, 25),
+          sourceType: TransactionSourceType.account,
+          sourceId: 'account',
+          destinationType: TransactionSourceType.card,
+          destinationId: 'card',
+          cardInvoiceEndDate: closedInvoice.endDate,
+        ),
+      ],
+    ).currentCardInvoice(
+      'card',
+      referenceDate: DateTime(2026, 9, 25),
+    );
+    expect(paidLedger.status(DateTime(2026, 9, 25)), CardInvoiceStatus.paid);
+    expect(paidLedger.paidAmount, 700);
+    expect(paidLedger.amount, 0);
   });
 
   test('calculates each installment in its corresponding billing cycle', () {
