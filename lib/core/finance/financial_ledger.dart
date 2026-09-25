@@ -64,6 +64,38 @@ class FinancialLedger {
             sum + accountBalance(account.id, referenceDate: referenceDate),
       );
 
+  double expenseTotal({
+    required DateTime start,
+    required DateTime end,
+  }) {
+    if (end.isBefore(start)) return 0;
+
+    return transactions
+        .where(
+          (transaction) =>
+              transaction.type == TransactionType.expense &&
+              !transaction.transactionDate.isBefore(start) &&
+              !transaction.transactionDate.isAfter(end),
+        )
+        .fold<double>(0, (total, transaction) => total + transaction.amount);
+  }
+
+  double incomeTotal({
+    required DateTime start,
+    required DateTime end,
+  }) {
+    if (end.isBefore(start)) return 0;
+
+    return transactions
+        .where(
+          (transaction) =>
+              transaction.type == TransactionType.income &&
+              !transaction.transactionDate.isBefore(start) &&
+              !transaction.transactionDate.isAfter(end),
+        )
+        .fold<double>(0, (total, transaction) => total + transaction.amount);
+  }
+
   double expenseTotalByCategory(
     TransactionCategory category, {
     required DateTime start,
