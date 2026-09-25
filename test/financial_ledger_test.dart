@@ -321,6 +321,62 @@ void main() {
     expect(paidLedger.amount, 0);
   });
 
+  test('lists only card movements belonging to an invoice cycle', () {
+    final card = const AtlasCard(
+      id: 'card',
+      name: 'Cartão',
+      lastFourDigits: '1234',
+      closingDay: 20,
+      dueDay: 10,
+      limit: 5000,
+    );
+
+    final purchase = AtlasTransaction(
+      id: 'purchase',
+      type: TransactionType.expense,
+      amount: 100,
+      description: 'Mercado',
+      createdAt: DateTime(2026, 9, 10),
+      transactionDate: DateTime(2026, 9, 10),
+      sourceType: TransactionSourceType.card,
+      sourceId: 'card',
+      category: TransactionCategory.food,
+    );
+    final refund = AtlasTransaction(
+      id: 'refund',
+      type: TransactionType.income,
+      amount: 20,
+      description: 'Estorno',
+      createdAt: DateTime(2026, 9, 12),
+      transactionDate: DateTime(2026, 9, 12),
+      sourceType: TransactionSourceType.card,
+      sourceId: 'card',
+    );
+    final outside = AtlasTransaction(
+      id: 'outside',
+      type: TransactionType.expense,
+      amount: 300,
+      description: 'Fora da fatura',
+      createdAt: DateTime(2026, 9, 21),
+      transactionDate: DateTime(2026, 9, 21),
+      sourceType: TransactionSourceType.card,
+      sourceId: 'card',
+    );
+
+    final ledger = FinancialLedger(
+      accounts: const [],
+      cards: [card],
+      transactions: [purchase, refund, outside],
+    );
+    final invoice = ledger.currentCardInvoice(
+      'card',
+      referenceDate: DateTime(2026, 9, 20),
+    );
+    final movements = ledger.cardInvoiceTransactions('card', invoice);
+
+    expect(movements.map((item) => item.id), ['refund', 'purchase']);
+  });
+
   test('calculates each installment in its corresponding billing cycle', () {
     final card = const AtlasCard(
       id: 'card',
