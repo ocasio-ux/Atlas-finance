@@ -271,6 +271,34 @@ class _PlanningPageState extends State<PlanningPage> {
 
     if (accountId == null) return;
 
+    final account = accounts.findById(accountId);
+    if (account == null || !mounted) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmar pagamento'),
+        content: Text(
+          'Registrar ' +
+              CurrencyFormatter.brl(commitment.amount) +
+              ' como despesa em ' +
+              account.name +
+              '?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Confirmar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
     final transactionId =
         'commitment-payment-' + DateTime.now().microsecondsSinceEpoch.toString();
     final now = DateTime.now();
