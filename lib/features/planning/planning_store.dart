@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../core/finance/financial_commitment.dart';
 import '../transactions/transaction_model.dart';
 import 'planning_models.dart';
 
@@ -12,13 +13,16 @@ class PlanningStore extends ChangeNotifier {
   static final PlanningStore instance = PlanningStore._();
   static const _budgetsKey = 'atlas_budgets_v1';
   static const _goalsKey = 'atlas_goals_v1';
+  static const _commitmentsKey = 'atlas_commitments_v1';
 
   final List<AtlasBudget> _budgets = [];
   final List<AtlasGoal> _goals = [];
+  final List<FinancialCommitment> _commitments = [];
   bool _loaded = false;
 
   List<AtlasBudget> get budgets => List.unmodifiable(_budgets);
   List<AtlasGoal> get goals => List.unmodifiable(_goals);
+  List<FinancialCommitment> get commitments => List.unmodifiable(_commitments);
 
   Future<void> load() async {
     if (_loaded) return;
@@ -29,6 +33,14 @@ class PlanningStore extends ChangeNotifier {
     _goals
       ..clear()
       ..addAll(_decodeList(prefs.getString(_goalsKey), AtlasGoal.fromJson));
+    _commitments
+      ..clear()
+      ..addAll(
+        _decodeList(
+          prefs.getString(_commitmentsKey),
+          FinancialCommitment.fromJson,
+        ),
+      );
     _loaded = true;
     notifyListeners();
   }
@@ -76,6 +88,36 @@ class PlanningStore extends ChangeNotifier {
     await _persistGoals();
   }
 
+  Future<void> saveCommitment(FinancialCommitment commitment) async {
+    final index = _commitments.indexWhere((item) => item.id == commitment.id);
+    if (index == -1) {
+      _commitments.add(commitment);
+    } else {
+      _commitments[index] = commitment;
+    }
+    _sortCommitments();
+    notifyListeners();
+    await _persistCommitments();
+  }
+
+  Future<void> deleteCommitment(String id) async {
+    _commitments.removeWhere((item) => item.id == id);
+    notifyListeners();
+    await _persistCommitments();
+  }
+
+  Future<void> cancelCommitment(String id) async {
+    final index = _commitments.indexWhere((item) => item.id == id);
+    if (index == -1) return;
+    _commitments[index] = _commitments[index].copyWith(cancelled: true);
+    notifyListeners();
+    await _persistCommitments();
+  }
+
+  void _sortCommitments() {
+    _commitments.sort((a, b) => a.dueDate.compareTo(b.dueDate));
+  }
+
   Future<void> _persistBudgets() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
@@ -89,6 +131,14 @@ class PlanningStore extends ChangeNotifier {
     await prefs.setString(
       _goalsKey,
       jsonEncode(_goals.map((item) => item.toJson()).toList()),
+    );
+  }
+
+  Future<void> _persistCommitments() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _commitmentsKey,
+      jsonEncode(_commitments.map((item) => item.toJson()).toList()),
     );
   }
 
