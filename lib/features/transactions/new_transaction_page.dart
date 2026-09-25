@@ -22,6 +22,8 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
   late TransactionCategory category;
   TransactionSourceType? sourceType;
   String? sourceId;
+  TransactionSourceType? destinationType;
+  String? destinationId;
   final amountController = TextEditingController();
   final descriptionController = TextEditingController();
   bool saving = false;
@@ -36,6 +38,8 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
     category = transaction?.category ?? TransactionCategory.other;
     sourceType = transaction?.sourceType;
     sourceId = transaction?.sourceId;
+    destinationType = transaction?.destinationType;
+    destinationId = transaction?.destinationId;
     if (transaction != null) {
       amountController.text = transaction.amount
           .toStringAsFixed(2)
@@ -73,6 +77,8 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
       category: category,
       sourceType: sourceType,
       sourceId: sourceId,
+      destinationType: destinationType,
+      destinationId: destinationId,
     );
 
     if (editing) {
@@ -243,6 +249,78 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
     }
   }
 
+  String get _destinationLabel {
+    if (destinationType == TransactionSourceType.account && destinationId != null) {
+      return AccountStore.instance.findById(destinationId!)?.name ??
+          'Conta não encontrada';
+    }
+    if (destinationType == TransactionSourceType.card && destinationId != null) {
+      return CardStore.instance.findById(destinationId!)?.name ??
+          'Cartão não encontrado';
+    }
+    return 'Não selecionado';
+  }
+
+  Future<void> _chooseDestination() async {
+    final accounts = AccountStore.instance.accounts;
+    final selected = await showModalBottomSheet<_SourceSelection>(
+      context: context,
+      backgroundColor: AtlasColors.surface,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 20),
+          children: [
+            if (accounts.isNotEmpty) const _SourceHeader('Contas'),
+            ...accounts.where((account) => account.id != sourceId).map(
+              (account) => ListTile(
+                leading: const Icon(
+                  Icons.account_balance_wallet_outlined,
+                  color: AtlasColors.green,
+                ),
+                title: Text(
+                  account.name,
+                  style: const TextStyle(color: AtlasColors.white),
+                ),
+                subtitle: Text(
+                  _accountTypeLabel(account.type),
+                  style: const TextStyle(color: AtlasColors.textMuted),
+                ),
+                trailing: destinationType == TransactionSourceType.account &&
+                        destinationId == account.id
+                    ? const Icon(Icons.check_rounded, color: AtlasColors.green)
+                    : null,
+                onTap: () => Navigator.pop(
+                  context,
+                  _SourceSelection(
+                    TransactionSourceType.account,
+                    account.id,
+                  ),
+                ),
+              ),
+            ),
+            if (accounts.isEmpty)
+              const Padding(
+                padding: EdgeInsets.all(20),
+                child: Text(
+                  'Cadastre uma segunda conta para fazer uma transferência.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AtlasColors.textMuted),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (selected != null) {
+      setState(() {
+        destinationType = selected.type;
+        destinationId = selected.id;
+      });
+    }
+  }
+
   String get _sourceLabel {
     if (sourceType == TransactionSourceType.account && sourceId != null) {
       return AccountStore.instance.findById(sourceId!)?.name ??
@@ -347,10 +425,19 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
             const SizedBox(height: 12),
             _OptionTile(
               icon: Icons.account_balance_wallet_outlined,
-              title: 'Conta ou cartão',
+              title: type == TransactionType.transfer ? 'Origem' : 'Conta ou cartão',
               subtitle: _sourceLabel,
               onTap: _chooseSource,
             ),
+            if (type == TransactionType.transfer) ...[
+              const SizedBox(height: 12),
+              _OptionTile(
+                icon: Icons.swap_horiz_rounded,
+                title: 'Destino',
+                subtitle: _destinationLabel,
+                onTap: _chooseDestination,
+              ),
+            ],
             const SizedBox(height: 12),
             const _OptionTile(
               icon: Icons.calendar_today_outlined,
