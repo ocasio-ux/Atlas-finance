@@ -1,6 +1,9 @@
 import '../../core/finance/financial_commitment.dart';
 import '../../core/finance/commitment_engine.dart';
+import '../../core/finance/financial_ledger.dart';
 import '../../core/finance/transaction_recurrence.dart';
+import '../accounts/account_model.dart';
+import '../cards/card_model.dart';
 import '../transactions/transaction_model.dart';
 
 class FinancialForecast {
@@ -32,26 +35,37 @@ class FinancialForecastEngine {
 
   FinancialForecast forMonth({
     required Iterable<AtlasTransaction> transactions,
+    Iterable<AtlasAccount> accounts = const [],
+    Iterable<AtlasCard> cards = const [],
     Iterable<FinancialCommitment> financialCommitments = const [],
     required DateTime now,
   }) {
     final all = transactions.toList(growable: false);
     final monthEnd = DateTime(now.year, now.month + 1, 0, 23, 59, 59, 999);
+    final ledger = FinancialLedger(
+      accounts: accounts,
+      cards: cards,
+      transactions: all,
+    );
 
-    var currentBalance = all
-        .where((item) => !item.transactionDate.isAfter(now))
-        .fold<double>(0, (sum, item) => sum + _signed(item));
+    var currentBalance = accounts.isEmpty
+        ? all
+              .where((item) => !item.transactionDate.isAfter(now))
+              .fold<double>(0, (sum, item) => sum + _signed(item))
+        : ledger.consolidatedBalanceAt(now);
 
-    for (final recurring in all.where((item) => item.isRecurring)) {
+    if (accounts.isEmpty) {
+      for (final recurring in all.where((item) => item.isRecurring)) {
       final historical = _recurrence.occurrencesBetween(
         recurring,
         start: recurring.transactionDate.add(const Duration(seconds: 1)),
         end: now,
       );
-      currentBalance += historical.fold<double>(
-        0,
-        (sum, item) => sum + _signed(item),
-      );
+        currentBalance += historical.fold<double>(
+          0,
+          (sum, item) => sum + _signed(item),
+        );
+      }
     }
 
     final future = all
