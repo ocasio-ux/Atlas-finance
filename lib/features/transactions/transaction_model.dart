@@ -133,7 +133,7 @@ class AtlasTransaction {
     final repeatName = json['repeat'] as String?;
     final createdAt = DateTime.parse(json['createdAt'] as String);
     final transactionDateRaw = json['transactionDate'] as String?;
-    final cardInvoiceEndDateRaw = json['cardInvoiceEndDate'] as String?;    final cardInvoiceEndDateRaw = json['cardInvoiceEndDate'] as String?;
+    final cardInvoiceEndDateRaw = json['cardInvoiceEndDate'] as String?;
 
     return AtlasTransaction(
       id: json['id'] as String,
