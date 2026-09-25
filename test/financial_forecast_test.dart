@@ -37,6 +37,7 @@ void main() {
         AtlasCard(
           id: 'card',
           name: 'Cartão',
+          lastFourDigits: '1234',
           limit: 5000,
           closingDay: 10,
           dueDay: 20,
