@@ -75,8 +75,11 @@ class TransactionStore extends ChangeNotifier {
     return null;
   }
 
-  void _sort() =>
-      _transactions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  void _sort() => _transactions.sort((a, b) {
+    final dateOrder = b.transactionDate.compareTo(a.transactionDate);
+    if (dateOrder != 0) return dateOrder;
+    return b.createdAt.compareTo(a.createdAt);
+  });
 
   Future<void> _persist() async {
     final prefs = await SharedPreferences.getInstance();
