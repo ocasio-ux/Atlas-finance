@@ -53,7 +53,12 @@ class FinancialLedger {
     return balance;
   }
 
-  double consolidatedBalance({DateTime? referenceDate}) => accounts.fold<double>(
+  double get consolidatedBalance => accounts.fold<double>(
+        0,
+        (sum, account) => sum + accountBalance(account.id),
+      );
+
+  double consolidatedBalanceAt(DateTime referenceDate) => accounts.fold<double>(
         0,
         (sum, account) =>
             sum + accountBalance(account.id, referenceDate: referenceDate),
