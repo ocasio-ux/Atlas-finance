@@ -34,15 +34,27 @@ void main() {
       dueDate: DateTime(2026, 9, 28),
       cancelled: true,
     ),
+    const FinancialCommitment(
+      id: 'c5',
+      title: 'Seguro futuro',
+      amount: 900,
+      dueDate: DateTime(2026, 10, 5),
+    ),
   ];
 
   test('separates pending and overdue commitments', () {
-    expect(engine.pending(commitments, referenceDate: referenceDate).map((c) => c.id), ['c2']);
-    expect(engine.overdue(commitments, referenceDate: referenceDate).map((c) => c.id), ['c1']);
+    expect(
+      engine.pending(commitments, referenceDate: referenceDate).map((c) => c.id),
+      ['c2', 'c5'],
+    );
+    expect(
+      engine.overdue(commitments, referenceDate: referenceDate).map((c) => c.id),
+      ['c1'],
+    );
   });
 
   test('calculates pending and overdue totals', () {
-    expect(engine.totalPending(commitments, referenceDate: referenceDate), 1500);
+    expect(engine.totalPending(commitments, referenceDate: referenceDate), 2400);
     expect(engine.totalOverdue(commitments, referenceDate: referenceDate), 120);
   });
 
@@ -61,6 +73,26 @@ void main() {
         end: DateTime(2026, 9, 30),
       ),
       1500,
+    );
+  });
+
+  test('calculates outstanding commitments through a forecast date', () {
+    expect(
+      engine.totalOutstandingThrough(
+        commitments,
+        referenceDate: referenceDate,
+        end: DateTime(2026, 9, 30),
+      ),
+      1620,
+    );
+
+    expect(
+      engine.totalOutstandingThrough(
+        commitments,
+        referenceDate: referenceDate,
+        end: DateTime(2026, 10, 31),
+      ),
+      2520,
     );
   });
 
