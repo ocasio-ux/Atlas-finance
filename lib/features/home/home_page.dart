@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../app/theme/atlas_colors.dart';
+import '../../core/finance/financial_ledger.dart';
 import '../../shared/formatters/currency_formatter.dart';
+import '../accounts/account_store.dart';
 import '../accounts/accounts_cards_page.dart';
+import '../cards/card_store.dart';
 import '../transactions/new_transaction_page.dart';
 import '../transactions/transaction_history_page.dart';
 import '../transactions/transaction_model.dart';
@@ -17,17 +20,25 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final store = TransactionStore.instance;
+  final accountStore = AccountStore.instance;
+  final cardStore = CardStore.instance;
 
   @override
   void initState() {
     super.initState();
     store.addListener(_refresh);
+    accountStore.addListener(_refresh);
+    cardStore.addListener(_refresh);
     store.load();
+    accountStore.load();
+    cardStore.load();
   }
 
   @override
   void dispose() {
     store.removeListener(_refresh);
+    accountStore.removeListener(_refresh);
+    cardStore.removeListener(_refresh);
     super.dispose();
   }
 
@@ -53,6 +64,11 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final ledger = FinancialLedger(
+      accounts: accountStore.accounts,
+      cards: cardStore.cards,
+      transactions: store.transactions,
+    );
     final recent = store.transactions.take(4).toList();
     return Scaffold(
       backgroundColor: AtlasColors.background,
@@ -62,7 +78,7 @@ class _HomePageState extends State<HomePage> {
           children: [
             _Header(onWalletTap: _openAccountsAndCards),
             const SizedBox(height: 30),
-            _BalanceCard(value: CurrencyFormatter.brl(store.balance)),
+            _BalanceCard(value: CurrencyFormatter.brl(ledger.consolidatedBalance)),
             const SizedBox(height: 16),
             Row(
               children: [
