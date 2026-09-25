@@ -26,6 +26,7 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
   String? destinationId;
   late DateTime transactionDate;
   int installmentCount = 1;
+  late TransactionRepeat repeat;
   final amountController = TextEditingController();
   final descriptionController = TextEditingController();
   bool saving = false;
@@ -43,6 +44,7 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
     destinationType = transaction?.destinationType;
     destinationId = transaction?.destinationId;
     transactionDate = transaction?.transactionDate ?? DateTime.now();
+    repeat = transaction?.repeat ?? TransactionRepeat.none;
     if (transaction != null) {
       amountController.text = transaction.amount
           .toStringAsFixed(2)
@@ -77,6 +79,13 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
 
     setState(() => saving = true);
     final existing = widget.transaction;
+    if (repeat != TransactionRepeat.none && type == TransactionType.transfer) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Transferências não podem ser recorrentes.')),
+      );
+      setState(() => saving = false);
+      return;
+    }
     final now = DateTime.now();
 
     if (!editing && installmentCount > 1) {
@@ -125,6 +134,7 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
         installmentNumber: existing?.installmentNumber,
         installmentCount: existing?.installmentCount,
         seriesId: existing?.seriesId,
+        repeat: repeat,
         cardInvoiceEndDate: existing?.cardInvoiceEndDate,
       );
 
@@ -213,6 +223,47 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
       ),
     );
     if (selected != null) setState(() => installmentCount = selected);
+  }
+
+  Future<void> _chooseRepeat() async {
+    final selected = await showModalBottomSheet<TransactionRepeat>(
+      context: context,
+      backgroundColor: AtlasColors.surface,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 4, 20, 12),
+              child: Text(
+                'Repetição',
+                style: TextStyle(
+                  color: AtlasColors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            ListTile(
+              title: const Text('Não repetir', style: TextStyle(color: AtlasColors.white)),
+              trailing: repeat == TransactionRepeat.none
+                  ? const Icon(Icons.check_rounded, color: AtlasColors.green)
+                  : null,
+              onTap: () => Navigator.pop(context, TransactionRepeat.none),
+            ),
+            ListTile(
+              title: const Text('Todo mês', style: TextStyle(color: AtlasColors.white)),
+              trailing: repeat == TransactionRepeat.monthly
+                  ? const Icon(Icons.check_rounded, color: AtlasColors.green)
+                  : null,
+              onTap: () => Navigator.pop(context, TransactionRepeat.monthly),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (selected != null) setState(() => repeat = selected);
   }
 
   Future<void> _chooseDate() async {
@@ -563,6 +614,15 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
                 title: 'Destino',
                 subtitle: _destinationLabel,
                 onTap: _chooseDestination,
+              ),
+            ],
+            if (type != TransactionType.transfer && installmentCount == 1) ...[
+              const SizedBox(height: 12),
+              _OptionTile(
+                icon: Icons.repeat_rounded,
+                title: 'Repetição',
+                subtitle: repeat == TransactionRepeat.monthly ? 'Todo mês' : 'Não repetir',
+                onTap: _chooseRepeat,
               ),
             ],
             if (!editing &&
