@@ -76,9 +76,16 @@ class _AccountsCardsPageState extends State<AccountsCardsPage> {
                   _shortDate(invoice.startDate) + ' - ' + _shortDate(invoice.endDate),
                   style: const TextStyle(color: AtlasColors.white, fontWeight: FontWeight.w700),
                 ),
-                subtitle: Text(
-                  'Vence ' + _shortDate(invoice.dueDate),
-                  style: const TextStyle(color: AtlasColors.textMuted),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Vence ' + _shortDate(invoice.dueDate),
+                      style: const TextStyle(color: AtlasColors.textMuted),
+                    ),
+                    const SizedBox(height: 6),
+                    _InvoiceStatusChip(status: invoice.status(DateTime.now())),
+                  ],
                 ),
                 trailing: Text(
                   CurrencyFormatter.brl(invoice.amount),
@@ -175,6 +182,7 @@ class _AccountsCardsPageState extends State<AccountsCardsPage> {
         sourceId: accountId,
         destinationType: TransactionSourceType.card,
         destinationId: card.id,
+        cardInvoiceEndDate: invoice.endDate,
       ),
     );
   }
@@ -520,6 +528,38 @@ class _CardSourceCard extends StatelessWidget {
     ),
   ),
   );
+}
+
+class _InvoiceStatusChip extends StatelessWidget {
+  const _InvoiceStatusChip({required this.status});
+
+  final CardInvoiceStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = switch (status) {
+      CardInvoiceStatus.open => 'Aberta',
+      CardInvoiceStatus.closed => 'Fechada',
+      CardInvoiceStatus.overdue => 'Vencida',
+      CardInvoiceStatus.paid => 'Paga',
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: AtlasColors.surface,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: AtlasColors.white,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
 }
 
 class _SourceCard extends StatelessWidget {
