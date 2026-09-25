@@ -209,7 +209,10 @@ class FinancialLedger {
     return _date(dueYear, dueMonth, dueDay);
   }
 
-  static bool _sameDate(DateTime a, DateTime b) =>\n      a.year == b.year && a.month == b.month && a.day == b.day;\n\n  static DateTime _date(int year, int month, int day) {
+  static bool _sameDate(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
+  static DateTime _date(int year, int month, int day) {
     final lastDay = DateTime(year, month + 1, 0).day;
     return DateTime(year, month, day.clamp(1, lastDay));
   }
