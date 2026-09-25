@@ -114,6 +114,25 @@ class PlanningStore extends ChangeNotifier {
     await _persistCommitments();
   }
 
+  Future<void> settleCommitment(
+    String id, {
+    required String transactionId,
+  }) async {
+    final index = _commitments.indexWhere((item) => item.id == id);
+    if (index == -1) return;
+
+    final commitment = _commitments[index];
+    if (commitment.cancelled || commitment.settledTransactionId != null) {
+      return;
+    }
+
+    _commitments[index] = commitment.copyWith(
+      settledTransactionId: transactionId,
+    );
+    notifyListeners();
+    await _persistCommitments();
+  }
+
   void _sortCommitments() {
     _commitments.sort((a, b) => a.dueDate.compareTo(b.dueDate));
   }
