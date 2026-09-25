@@ -1,6 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:atlas_finance/core/finance/financial_commitment.dart';\nimport 'package:atlas_finance/features/forecast/financial_forecast.dart';
+import 'package:atlas_finance/core/finance/financial_commitment.dart';
+import 'package:atlas_finance/features/accounts/account_model.dart';
+import 'package:atlas_finance/features/cards/card_model.dart';
+import 'package:atlas_finance/features/forecast/financial_forecast.dart';
 import 'package:atlas_finance/features/transactions/transaction_model.dart';
 
 void main() {
@@ -19,6 +22,63 @@ void main() {
     description: id,
     createdAt: date,
   );
+
+  test('uses the ledger cash balance when accounts are provided', () {
+    final forecast = engine.forMonth(
+      accounts: const [
+        AtlasAccount(
+          id: 'checking',
+          name: 'Conta',
+          type: AccountType.checking,
+          initialBalance: 1000,
+        ),
+      ],
+      cards: const [
+        AtlasCard(
+          id: 'card',
+          name: 'Cartão',
+          limit: 5000,
+          closingDay: 10,
+          dueDay: 20,
+        ),
+      ],
+      transactions: [
+        AtlasTransaction(
+          id: 'salary',
+          type: TransactionType.income,
+          amount: 500,
+          description: 'Salário',
+          createdAt: DateTime(2026, 7, 10),
+          transactionDate: DateTime(2026, 7, 10),
+          sourceType: TransactionSourceType.account,
+          sourceId: 'checking',
+        ),
+        AtlasTransaction(
+          id: 'rent',
+          type: TransactionType.expense,
+          amount: 200,
+          description: 'Aluguel',
+          createdAt: DateTime(2026, 7, 12),
+          transactionDate: DateTime(2026, 7, 12),
+          sourceType: TransactionSourceType.account,
+          sourceId: 'checking',
+        ),
+        AtlasTransaction(
+          id: 'card-purchase',
+          type: TransactionType.expense,
+          amount: 300,
+          description: 'Compra no cartão',
+          createdAt: DateTime(2026, 7, 13),
+          transactionDate: DateTime(2026, 7, 13),
+          sourceType: TransactionSourceType.card,
+          sourceId: 'card',
+        ),
+      ],
+      now: DateTime(2026, 7, 15),
+    );
+
+    expect(forecast.currentBalance, 1300);
+  });
 
   test('stops monthly recurrence after its end date', () {
     final recurring = AtlasTransaction(
