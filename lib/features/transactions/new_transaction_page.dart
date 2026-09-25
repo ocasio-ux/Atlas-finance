@@ -27,6 +27,7 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
   late DateTime transactionDate;
   int installmentCount = 1;
   late TransactionRepeat repeat;
+  DateTime? repeatEndDate;
   final amountController = TextEditingController();
   final descriptionController = TextEditingController();
   bool saving = false;
@@ -45,6 +46,7 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
     destinationId = transaction?.destinationId;
     transactionDate = transaction?.transactionDate ?? DateTime.now();
     repeat = transaction?.repeat ?? TransactionRepeat.none;
+    repeatEndDate = transaction?.repeatEndDate;
     if (transaction != null) {
       amountController.text = transaction.amount
           .toStringAsFixed(2)
@@ -135,6 +137,7 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
         installmentCount: existing?.installmentCount,
         seriesId: existing?.seriesId,
         repeat: repeat,
+        repeatEndDate: repeatEndDate,
         cardInvoiceEndDate: existing?.cardInvoiceEndDate,
       );
 
@@ -263,7 +266,40 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
         ),
       ),
     );
-    if (selected != null) setState(() => repeat = selected);
+    if (selected != null) {
+      setState(() {
+        repeat = selected;
+        if (selected == TransactionRepeat.none) repeatEndDate = null;
+      });
+    }
+  }
+
+  Future<void> _chooseRepeatEndDate() async {
+    final initial = repeatEndDate ?? DateTime(
+      transactionDate.year,
+      transactionDate.month + 1,
+      transactionDate.day,
+    );
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: initial.isBefore(transactionDate) ? transactionDate : initial,
+      firstDate: transactionDate,
+      lastDate: DateTime(2100),
+      helpText: 'Até quando repetir?',
+      cancelText: 'Cancelar',
+      confirmText: 'Selecionar',
+    );
+    if (selected == null) return;
+    setState(() {
+      repeatEndDate = DateTime(
+        selected.year,
+        selected.month,
+        selected.day,
+        transactionDate.hour,
+        transactionDate.minute,
+        transactionDate.second,
+      );
+    });
   }
 
   Future<void> _chooseDate() async {
@@ -624,6 +660,19 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
                 subtitle: repeat == TransactionRepeat.monthly ? 'Todo mês' : 'Não repetir',
                 onTap: _chooseRepeat,
               ),
+              if (repeat == TransactionRepeat.monthly) ...[
+                const SizedBox(height: 8),
+                _OptionTile(
+                  icon: Icons.event_outlined,
+                  title: 'Fim da repetição',
+                  subtitle: repeatEndDate == null
+                      ? 'Sem data de término'
+                      : repeatEndDate!.day.toString().padLeft(2, '0') + '/' +
+                        repeatEndDate!.month.toString().padLeft(2, '0') + '/' +
+                        repeatEndDate!.year.toString(),
+                  onTap: _chooseRepeatEndDate,
+                ),
+              ],
             ],
             if (!editing &&
                 type == TransactionType.expense &&
