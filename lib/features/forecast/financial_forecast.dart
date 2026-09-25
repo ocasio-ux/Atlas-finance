@@ -28,9 +28,21 @@ class FinancialForecastEngine {
   }) {
     final all = transactions.toList(growable: false);
 
-    final currentBalance = all
+    var currentBalance = all
         .where((item) => !item.transactionDate.isAfter(now))
         .fold<double>(0, (sum, item) => sum + _signed(item));
+
+    for (final recurring in all.where((item) => item.isRecurring)) {
+      final historical = _recurrence.occurrencesBetween(
+        recurring,
+        start: recurring.transactionDate.add(const Duration(seconds: 1)),
+        end: now,
+      );
+      currentBalance += historical.fold<double>(
+        0,
+        (sum, item) => sum + _signed(item),
+      );
+    }
 
     final monthEnd = DateTime(now.year, now.month + 1, 0, 23, 59, 59, 999);
     final future = all
