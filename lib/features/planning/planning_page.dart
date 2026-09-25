@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../app/theme/atlas_colors.dart';
 import '../../core/finance/financial_commitment.dart';
 import '../../shared/formatters/currency_formatter.dart';
+import '../accounts/account_model.dart';
+import '../accounts/account_store.dart';
 import '../transactions/transaction_model.dart';
 import '../transactions/transaction_store.dart';
 import 'planning_models.dart';
@@ -18,20 +20,24 @@ class PlanningPage extends StatefulWidget {
 class _PlanningPageState extends State<PlanningPage> {
   final planning = PlanningStore.instance;
   final transactions = TransactionStore.instance;
+  final accounts = AccountStore.instance;
 
   @override
   void initState() {
     super.initState();
     planning.addListener(_refresh);
     transactions.addListener(_refresh);
+    accounts.addListener(_refresh);
     planning.load();
     transactions.load();
+    accounts.load();
   }
 
   @override
   void dispose() {
     planning.removeListener(_refresh);
     transactions.removeListener(_refresh);
+    accounts.removeListener(_refresh);
     super.dispose();
   }
 
@@ -191,6 +197,104 @@ class _PlanningPageState extends State<PlanningPage> {
         amount: value,
         dueDate: dueDate,
       ),
+    );
+  }
+
+  Future<void> _payCommitment(FinancialCommitment commitment) async {
+    final status = commitment.status(DateTime.now());
+    if (status == FinancialCommitmentStatus.paid ||
+        status == FinancialCommitmentStatus.cancelled) {
+      return;
+    }
+
+    await accounts.load();
+    if (!mounted) return;
+
+    if (accounts.accounts.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cadastre uma conta antes de registrar o pagamento.'),
+        ),
+      );
+      return;
+    }
+
+    final accountId = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: AtlasColors.surface,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 4, 20, 12),
+              child: Text(
+                'Pagar compromisso',
+                style: TextStyle(
+                  color: AtlasColors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+              child: Text(
+                commitment.title +
+                    ' • ' +
+                    CurrencyFormatter.brl(commitment.amount),
+                style: const TextStyle(color: AtlasColors.textMuted),
+              ),
+            ),
+            ...accounts.accounts.map(
+              (account) => ListTile(
+                leading: const Icon(
+                  Icons.account_balance_wallet_outlined,
+                  color: AtlasColors.green,
+                ),
+                title: Text(
+                  account.name,
+                  style: const TextStyle(color: AtlasColors.white),
+                ),
+                subtitle: Text(
+                  _accountTypeLabel(account.type),
+                  style: const TextStyle(color: AtlasColors.textMuted),
+                ),
+                onTap: () => Navigator.pop(context, account.id),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (accountId == null) return;
+
+    final transactionId =
+        'commitment-payment-' + DateTime.now().microsecondsSinceEpoch.toString();
+    final now = DateTime.now();
+    final transaction = AtlasTransaction(
+      id: transactionId,
+      type: TransactionType.expense,
+      amount: commitment.amount,
+      description: 'Pagamento: ' + commitment.title,
+      createdAt: now,
+      transactionDate: now,
+      category: TransactionCategory.other,
+      sourceType: TransactionSourceType.account,
+      sourceId: accountId,
+    );
+
+    await transactions.add(transaction);
+    await planning.settleCommitment(
+      commitment.id,
+      transactionId: transactionId,
+    );
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Compromisso marcado como pago.')),
     );
   }
 
@@ -371,18 +475,28 @@ class _PlanningPageState extends State<PlanningPage> {
                   ),
                   PopupMenuButton<String>(
                     onSelected: (value) async {
-                      if (value == 'cancel') {
+                      if (value == 'pay') {
+                        await _payCommitment(commitment);
+                      } else if (value == 'cancel') {
                         await planning.cancelCommitment(commitment.id);
                       } else if (value == 'delete') {
                         await planning.deleteCommitment(commitment.id);
                       }
                     },
-                    itemBuilder: (context) => const [
-                      PopupMenuItem(
-                        value: 'cancel',
-                        child: Text('Cancelar compromisso'),
-                      ),
-                      PopupMenuItem(
+                    itemBuilder: (context) => [
+                      if (status != FinancialCommitmentStatus.paid &&
+                          status != FinancialCommitmentStatus.cancelled)
+                        const PopupMenuItem(
+                          value: 'pay',
+                          child: Text('Marcar como pago'),
+                        ),
+                      if (status != FinancialCommitmentStatus.paid &&
+                          status != FinancialCommitmentStatus.cancelled)
+                        const PopupMenuItem(
+                          value: 'cancel',
+                          child: Text('Cancelar compromisso'),
+                        ),
+                      const PopupMenuItem(
                         value: 'delete',
                         child: Text('Excluir'),
                       ),
@@ -512,6 +626,13 @@ String _commitmentStatusLabel(FinancialCommitmentStatus status) =>
       FinancialCommitmentStatus.overdue => 'Atrasado',
       FinancialCommitmentStatus.cancelled => 'Cancelado',
     };
+
+String _accountTypeLabel(AccountType type) => switch (type) {
+  AccountType.checking => 'Conta corrente',
+  AccountType.savings => 'Poupança',
+  AccountType.wallet => 'Carteira digital',
+  AccountType.cash => 'Dinheiro',
+};
 
 String _categoryLabel(TransactionCategory value) => switch (value) {
   TransactionCategory.food => 'Alimentação',
