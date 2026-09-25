@@ -72,6 +72,7 @@ class _AccountsCardsPageState extends State<AccountsCardsPage> {
             ...invoices.map(
               (invoice) => ListTile(
                 contentPadding: EdgeInsets.zero,
+                onTap: () => _showInvoiceDetails(card, invoice),
                 title: Text(
                   _shortDate(invoice.startDate) + ' - ' + _shortDate(invoice.endDate),
                   style: const TextStyle(color: AtlasColors.white, fontWeight: FontWeight.w700),
@@ -94,6 +95,76 @@ class _AccountsCardsPageState extends State<AccountsCardsPage> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showInvoiceDetails(
+    AtlasCard card,
+    CardInvoice invoice,
+  ) async {
+    final status = invoice.status(DateTime.now());
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AtlasColors.surface,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Fatura • ${card.name}',
+                style: const TextStyle(
+                  color: AtlasColors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '${_shortDate(invoice.startDate)} - ${_shortDate(invoice.endDate)}',
+                style: const TextStyle(color: AtlasColors.textMuted),
+              ),
+              const SizedBox(height: 16),
+              _InvoiceStatusChip(status: status),
+              const SizedBox(height: 20),
+              _InvoiceValueRow(
+                label: 'Valor da fatura',
+                value: CurrencyFormatter.brl(invoice.billedAmount),
+              ),
+              _InvoiceValueRow(
+                label: 'Pago',
+                value: CurrencyFormatter.brl(invoice.paidAmount),
+              ),
+              _InvoiceValueRow(
+                label: 'Restante',
+                value: CurrencyFormatter.brl(invoice.amount),
+                emphasized: true,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Vencimento: ${_shortDate(invoice.dueDate)}',
+                style: const TextStyle(color: AtlasColors.textMuted),
+              ),
+              if (invoice.amount > 0) ...[
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _payCardInvoice(card, invoice);
+                    },
+                    child: const Text('Pagar fatura'),
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
@@ -527,6 +598,43 @@ class _CardSourceCard extends StatelessWidget {
       ],
     ),
   ),
+  );
+}
+
+class _InvoiceValueRow extends StatelessWidget {
+  const _InvoiceValueRow({
+    required this.label,
+    required this.value,
+    this.emphasized = false,
+  });
+
+  final String label;
+  final String value;
+  final bool emphasized;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 10),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: emphasized ? AtlasColors.white : AtlasColors.textMuted,
+              fontWeight: emphasized ? FontWeight.w800 : FontWeight.w500,
+            ),
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            color: AtlasColors.white,
+            fontWeight: emphasized ? FontWeight.w900 : FontWeight.w700,
+          ),
+        ),
+      ],
+    ),
   );
 }
 
