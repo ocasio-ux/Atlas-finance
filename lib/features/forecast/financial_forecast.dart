@@ -54,18 +54,16 @@ class FinancialForecastEngine {
               .fold<double>(0, (sum, item) => sum + _signed(item))
         : ledger.consolidatedBalanceAt(now);
 
-    if (accounts.isEmpty) {
-      for (final recurring in all.where((item) => item.isRecurring)) {
+    for (final recurring in all.where((item) => item.isRecurring)) {
       final historical = _recurrence.occurrencesBetween(
         recurring,
         start: recurring.transactionDate.add(const Duration(seconds: 1)),
         end: now,
       );
-        currentBalance += historical.fold<double>(
-          0,
-          (sum, item) => sum + _signed(item),
-        );
-      }
+      currentBalance += historical.fold<double>(
+        0,
+        (sum, item) => sum + _cashSigned(item, accounts),
+      );
     }
 
     final future = all
@@ -121,4 +119,28 @@ class FinancialForecastEngine {
     TransactionType.expense => -item.amount,
     TransactionType.transfer => 0,
   };
+
+  double _cashSigned(
+    AtlasTransaction item,
+    Iterable<AtlasAccount> accounts,
+  ) {
+    if (accounts.isEmpty) return _signed(item);
+
+    final sourceIsAccount =
+        item.sourceType == TransactionSourceType.account &&
+        accounts.any((account) => account.id == item.sourceId);
+    final destinationIsAccount =
+        item.destinationType == TransactionSourceType.account &&
+        accounts.any((account) => account.id == item.destinationId);
+
+    return switch (item.type) {
+      TransactionType.income => sourceIsAccount ? item.amount : 0,
+      TransactionType.expense => sourceIsAccount ? -item.amount : 0,
+      TransactionType.transfer => destinationIsAccount
+          ? item.amount
+          : sourceIsAccount
+          ? -item.amount
+          : 0,
+    };
+  }
 }
