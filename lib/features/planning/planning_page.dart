@@ -52,8 +52,8 @@ class _PlanningPageState extends State<PlanningPage> {
           (item) =>
               item.type == TransactionType.expense &&
               item.category == category &&
-              item.createdAt.year == now.year &&
-              item.createdAt.month == now.month,
+              item.transactionDate.year == now.year &&
+              item.transactionDate.month == now.month,
         )
         .fold(0.0, (sum, item) => sum + item.amount);
   }
