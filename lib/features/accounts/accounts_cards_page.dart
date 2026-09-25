@@ -45,6 +45,94 @@ class _AccountsCardsPageState extends State<AccountsCardsPage> {
     if (mounted) setState(() {});
   }
 
+
+  Future<void> _payCardInvoice(AtlasCard card, double invoiceAmount) async {
+    if (accounts.accounts.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cadastre uma conta para pagar a fatura.')),
+      );
+      return;
+    }
+
+    final amountController = TextEditingController(
+      text: invoiceAmount.toStringAsFixed(2).replaceAll('.', ','),
+    );
+    String? accountId = accounts.accounts.first.id;
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text('Pagar ${card.name}'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<String>(
+                initialValue: accountId,
+                decoration: const InputDecoration(labelText: 'Pagar com'),
+                items: accounts.accounts.map(
+                  (account) => DropdownMenuItem(
+                    value: account.id,
+                    child: Text(account.name),
+                  ),
+                ).toList(),
+                onChanged: (value) => setDialogState(() => accountId = value),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: amountController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                  labelText: 'Valor',
+                  prefixText: 'R\$ ',
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Pagar'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (saved != true || accountId == null) {
+      amountController.dispose();
+      return;
+    }
+
+    final amount = CurrencyFormatter.parseBrl(amountController.text);
+    amountController.dispose();
+    if (amount == null || amount <= 0 || amount > invoiceAmount) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Informe um valor válido para a fatura.')),
+      );
+      return;
+    }
+
+    final now = DateTime.now();
+    await transactions.add(
+      AtlasTransaction(
+        id: now.microsecondsSinceEpoch.toString(),
+        type: TransactionType.transfer,
+        amount: amount,
+        description: 'Pagamento ${card.name}',
+        createdAt: now,
+        transactionDate: now,
+        sourceType: TransactionSourceType.account,
+        sourceId: accountId,
+        destinationType: TransactionSourceType.card,
+        destinationId: card.id,
+      ),
+    );
+  }
+
   Future<void> _addAccount() async {
     final nameController = TextEditingController();
     final balanceController = TextEditingController();
@@ -259,19 +347,20 @@ class _AccountsCardsPageState extends State<AccountsCardsPage> {
             const _EmptyCard(text: 'Nenhum cartão cadastrado.')
           else
             ...cards.cards.map((card) {
-              final invoice = ledger.cardInvoice(card.id);
-              final available = card.limit == null
-                  ? null
-                  : (card.limit! - invoice).clamp(0, card.limit!);
-              return _SourceCard(
+              final invoice = ledger.currentCardInvoice(card.id);
+              final available = ledger.cardAvailableLimit(card.id);
+              return _CardSourceCard(
                 icon: Icons.credit_card_rounded,
                 title: card.name,
                 subtitle: card.lastFourDigits.isEmpty
-                    ? 'Fatura ${CurrencyFormatter.brl(invoice)} • vence dia ${card.dueDay}'
-                    : 'Final ${card.lastFourDigits} • fatura ${CurrencyFormatter.brl(invoice)}',
+                    ? 'Fatura ${CurrencyFormatter.brl(invoice.amount)} • vence ${_shortDate(invoice.dueDate)}'
+                    : 'Final ${card.lastFourDigits} • fatura ${CurrencyFormatter.brl(invoice.amount)}',
                 trailing: available == null
-                    ? 'Fatura ${CurrencyFormatter.brl(invoice)}'
-                    : 'Livre ${CurrencyFormatter.brl(available.toDouble())}',
+                    ? 'Fatura ${CurrencyFormatter.brl(invoice.amount)}'
+                    : 'Livre ${CurrencyFormatter.brl(available)}',
+                onPay: invoice.amount > 0
+                    ? () => _payCardInvoice(card, invoice.amount)
+                    : null,
               );
             }),
         ],
@@ -309,6 +398,74 @@ class _SectionHeader extends StatelessWidget {
         label: Text(action),
       ),
     ],
+  );
+}
+
+
+class _CardSourceCard extends StatelessWidget {
+  const _CardSourceCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.trailing,
+    this.onPay,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final String trailing;
+  final VoidCallback? onPay;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    margin: const EdgeInsets.only(bottom: 10),
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: AtlasColors.surface,
+      borderRadius: BorderRadius.circular(18),
+    ),
+    child: Row(
+      children: [
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: AtlasColors.green.withValues(alpha: 0.16),
+            borderRadius: BorderRadius.circular(13),
+          ),
+          child: Icon(icon, color: AtlasColors.green),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(color: AtlasColors.white, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 3),
+              Text(subtitle, style: const TextStyle(color: AtlasColors.textMuted, fontSize: 12)),
+              if (onPay != null)
+                TextButton(
+                  onPressed: onPay,
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(0, 32),
+                  ),
+                  child: const Text('Pagar fatura'),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            trailing,
+            textAlign: TextAlign.end,
+            style: const TextStyle(color: AtlasColors.white, fontWeight: FontWeight.w700),
+          ),
+        ),
+      ],
+    ),
   );
 }
 
