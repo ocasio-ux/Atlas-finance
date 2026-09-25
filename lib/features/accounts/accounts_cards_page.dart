@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../app/theme/atlas_colors.dart';
-import '../../core/finance/financial_ledger.dart';
+import '../../core/finance/card_invoice.dart';\nimport '../../core/finance/financial_ledger.dart';
 import '../../shared/formatters/currency_formatter.dart';
 import '../cards/card_model.dart';
 import '../cards/card_store.dart';
@@ -46,7 +46,7 @@ class _AccountsCardsPageState extends State<AccountsCardsPage> {
   }
 
 
-  Future<void> _payCardInvoice(AtlasCard card, double invoiceAmount) async {
+  Future<void> _payCardInvoice(AtlasCard card, CardInvoice invoice) async {
     if (accounts.accounts.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Cadastre uma conta para pagar a fatura.')),
@@ -55,7 +55,7 @@ class _AccountsCardsPageState extends State<AccountsCardsPage> {
     }
 
     final amountController = TextEditingController(
-      text: invoiceAmount.toStringAsFixed(2).replaceAll('.', ','),
+      text: invoice.amount.toStringAsFixed(2).replaceAll('.', ','),
     );
     String? accountId = accounts.accounts.first.id;
 
@@ -109,7 +109,7 @@ class _AccountsCardsPageState extends State<AccountsCardsPage> {
 
     final amount = CurrencyFormatter.parseBrl(amountController.text);
     amountController.dispose();
-    if (amount == null || amount <= 0 || amount > invoiceAmount) {
+    if (amount == null || amount <= 0 || amount > invoice.amount) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Informe um valor válido para a fatura.')),
       );
