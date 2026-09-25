@@ -30,6 +30,7 @@ class AtlasTransaction {
     this.destinationType,
     this.destinationId,
     this.repeat = TransactionRepeat.none,
+    this.repeatEndDate,
     this.seriesId,
     this.installmentNumber,
     this.installmentCount,
@@ -56,6 +57,7 @@ class AtlasTransaction {
   final String? destinationId;
 
   final TransactionRepeat repeat;
+  final DateTime? repeatEndDate;
   final String? seriesId;
   final int? installmentNumber;
   final int? installmentCount;
@@ -84,6 +86,7 @@ class AtlasTransaction {
     TransactionSourceType? destinationType,
     String? destinationId,
     TransactionRepeat? repeat,
+    DateTime? repeatEndDate,
     String? seriesId,
     int? installmentNumber,
     int? installmentCount,
@@ -101,6 +104,7 @@ class AtlasTransaction {
     destinationType: destinationType ?? this.destinationType,
     destinationId: destinationId ?? this.destinationId,
     repeat: repeat ?? this.repeat,
+    repeatEndDate: repeatEndDate ?? this.repeatEndDate,
     seriesId: seriesId ?? this.seriesId,
     installmentNumber: installmentNumber ?? this.installmentNumber,
     installmentCount: installmentCount ?? this.installmentCount,
@@ -120,6 +124,7 @@ class AtlasTransaction {
     'destinationType': destinationType?.name,
     'destinationId': destinationId,
     'repeat': repeat.name,
+    'repeatEndDate': repeatEndDate?.toIso8601String(),
     'seriesId': seriesId,
     'installmentNumber': installmentNumber,
     'installmentCount': installmentCount,
@@ -131,6 +136,7 @@ class AtlasTransaction {
     final sourceTypeName = json['sourceType'] as String?;
     final destinationTypeName = json['destinationType'] as String?;
     final repeatName = json['repeat'] as String?;
+    final repeatEndDateRaw = json['repeatEndDate'] as String?;
     final createdAt = DateTime.parse(json['createdAt'] as String);
     final transactionDateRaw = json['transactionDate'] as String?;
     final cardInvoiceEndDateRaw = json['cardInvoiceEndDate'] as String?;
@@ -170,6 +176,7 @@ class AtlasTransaction {
               (item) => item.name == repeatName,
               orElse: () => TransactionRepeat.none,
             ),
+      repeatEndDate: repeatEndDateRaw == null ? null : DateTime.parse(repeatEndDateRaw),
       seriesId: json['seriesId'] as String?,
       installmentNumber: (json['installmentNumber'] as num?)?.toInt(),
       installmentCount: (json['installmentCount'] as num?)?.toInt(),
