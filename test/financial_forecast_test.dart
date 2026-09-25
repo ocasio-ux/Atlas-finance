@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:atlas_finance/features/forecast/financial_forecast.dart';
+import 'package:atlas_finance/core/finance/financial_commitment.dart';\nimport 'package:atlas_finance/features/forecast/financial_forecast.dart';
 import 'package:atlas_finance/features/transactions/transaction_model.dart';
 
 void main() {
@@ -80,7 +80,47 @@ void main() {
     expect(forecast.commitments.first.transactionDate, DateTime(2026, 7, 10));
   });
 
-  test('uses transaction date rather than record creation date for current balance', () {
+  test('reserves outstanding financial commitments in projected balance', () {
+    final forecast = engine.forMonth(
+      transactions: [
+        transaction(
+          'salary',
+          TransactionType.income,
+          3000,
+          DateTime(2026, 7, 20),
+        ),
+      ],
+      financialCommitments: [
+        const FinancialCommitment(
+          id: 'rent',
+          title: 'Aluguel',
+          amount: 1200,
+          dueDate: DateTime(2026, 7, 25),
+        ),
+        const FinancialCommitment(
+          id: 'overdue',
+          title: 'Internet atrasada',
+          amount: 100,
+          dueDate: DateTime(2026, 7, 10),
+        ),
+        const FinancialCommitment(
+          id: 'future',
+          title: 'Seguro',
+          amount: 900,
+          dueDate: DateTime(2026, 8, 5),
+        ),
+      ],
+      now: DateTime(2026, 7, 15, 12),
+    );
+
+    expect(forecast.currentBalance, 0);
+    expect(forecast.expectedIncome, 3000);
+    expect(forecast.commitmentReserve, 1300);
+    expect(forecast.projectedBalance, 1700);
+    expect(forecast.projectedAfterCommitments, 1700);
+  });
+
+  test('uses transaction date rather than record creation date for current balance', {
     final future = AtlasTransaction(
       id: 'future',
       type: TransactionType.expense,
