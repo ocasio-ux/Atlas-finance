@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../app/theme/atlas_colors.dart';
 import '../../core/finance/financial_commitment.dart';
+import '../../core/finance/financial_ledger.dart';
 import '../../shared/formatters/currency_formatter.dart';
 import '../accounts/account_model.dart';
 import '../accounts/account_store.dart';
+import '../cards/card_store.dart';
 import '../transactions/transaction_model.dart';
 import '../transactions/transaction_store.dart';
 import 'planning_models.dart';
@@ -21,6 +23,7 @@ class _PlanningPageState extends State<PlanningPage> {
   final planning = PlanningStore.instance;
   final transactions = TransactionStore.instance;
   final accounts = AccountStore.instance;
+  final cards = CardStore.instance;
 
   @override
   void initState() {
@@ -28,9 +31,11 @@ class _PlanningPageState extends State<PlanningPage> {
     planning.addListener(_refresh);
     transactions.addListener(_refresh);
     accounts.addListener(_refresh);
+    cards.addListener(_refresh);
     planning.load();
     transactions.load();
     accounts.load();
+    cards.load();
   }
 
   @override
@@ -38,6 +43,7 @@ class _PlanningPageState extends State<PlanningPage> {
     planning.removeListener(_refresh);
     transactions.removeListener(_refresh);
     accounts.removeListener(_refresh);
+    cards.removeListener(_refresh);
     super.dispose();
   }
 
@@ -45,17 +51,21 @@ class _PlanningPageState extends State<PlanningPage> {
     if (mounted) setState(() {});
   }
 
+  FinancialLedger get _ledger => FinancialLedger(
+        accounts: accounts.accounts,
+        cards: cards.cards,
+        transactions: transactions.transactions,
+      );
+
   double _spentThisMonth(TransactionCategory category) {
     final now = DateTime.now();
-    return transactions.transactions
-        .where(
-          (item) =>
-              item.type == TransactionType.expense &&
-              item.category == category &&
-              item.transactionDate.year == now.year &&
-              item.transactionDate.month == now.month,
-        )
-        .fold(0.0, (sum, item) => sum + item.amount);
+    final start = DateTime(now.year, now.month);
+    final end = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
+    return _ledger.expenseTotalByCategory(
+      category,
+      start: start,
+      end: end,
+    );
   }
 
   Future<void> _addBudget() async {
