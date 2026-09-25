@@ -14,7 +14,9 @@ class TransactionRecurrenceEngine {
     }
 
     var occurrenceDate = _addMonths(template.transactionDate, 1);
-    while (!occurrenceDate.isAfter(end)) {
+    final recurrenceEnd = template.repeatEndDate;
+    while (!occurrenceDate.isAfter(end) &&
+        (recurrenceEnd == null || !occurrenceDate.isAfter(recurrenceEnd))) {
       if (!occurrenceDate.isBefore(start)) {
         yield AtlasTransaction(
           id: '${template.id}_recurrence_${occurrenceDate.year}_${occurrenceDate.month}',
@@ -29,6 +31,7 @@ class TransactionRecurrenceEngine {
           destinationType: template.destinationType,
           destinationId: template.destinationId,
           repeat: TransactionRepeat.none,
+          repeatEndDate: null,
           seriesId: template.seriesId ?? template.id,
           cardInvoiceEndDate: null,
         );
