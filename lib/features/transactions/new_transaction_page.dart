@@ -22,6 +22,7 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
   late TransactionCategory category;
   TransactionSourceType? sourceType;
   String? sourceId;
+  late DateTime selectedDate;
   final amountController = TextEditingController();
   final descriptionController = TextEditingController();
   bool saving = false;
@@ -36,6 +37,7 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
     category = transaction?.category ?? TransactionCategory.other;
     sourceType = transaction?.sourceType;
     sourceId = transaction?.sourceId;
+    selectedDate = transaction?.createdAt ?? DateTime.now();
     if (transaction != null) {
       amountController.text = transaction.amount
           .toStringAsFixed(2)
@@ -69,7 +71,7 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
       description: descriptionController.text.trim().isEmpty
           ? _defaultDescription(type)
           : descriptionController.text.trim(),
-      createdAt: existing?.createdAt ?? now,
+      createdAt: selectedDate,
       category: category,
       sourceType: sourceType,
       sourceId: sourceId,
@@ -352,10 +354,11 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
               onTap: _chooseSource,
             ),
             const SizedBox(height: 12),
-            const _OptionTile(
+            _OptionTile(
               icon: Icons.calendar_today_outlined,
               title: 'Data',
-              subtitle: 'Hoje',
+              subtitle: _formatDate(selectedDate),
+              onTap: _chooseDate,
             ),
             const SizedBox(height: 28),
             SizedBox(
@@ -394,6 +397,16 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
       ),
     );
   }
+
+  Future<void> _chooseDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      initialDate: selectedDate,
+    );
+    if (picked != null) setState(() => selectedDate = picked);
+  }
 }
 
 class _SourceSelection {
@@ -424,6 +437,9 @@ String _accountTypeLabel(AccountType type) => switch (type) {
   AccountType.wallet => 'Carteira digital',
   AccountType.cash => 'Dinheiro',
 };
+
+String _formatDate(DateTime value) =>
+    '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year}';
 
 String _categoryLabel(TransactionCategory category) => switch (category) {
   TransactionCategory.food => 'Alimentação',
