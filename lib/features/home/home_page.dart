@@ -5,6 +5,7 @@ import '../../shared/formatters/currency_formatter.dart';
 import '../accounts/accounts_cards_page.dart';
 import '../planning/planning_page.dart';
 import 'profile_page.dart';
+import '../insights/ai_assistant_page.dart';
 import '../transactions/new_transaction_page.dart';
 import '../transactions/transaction_history_page.dart';
 import '../transactions/transaction_model.dart';
@@ -57,6 +58,9 @@ class _HomePageState extends State<HomePage> {
   );
   Future<void> _openProfile() async => Navigator.of(context).push<void>(
     MaterialPageRoute(builder: (_) => const ProfilePage()),
+  );
+  Future<void> _openAi() async => Navigator.of(context).push<void>(
+    MaterialPageRoute(builder: (_) => const AiAssistantPage()),
   );
 
   @override
@@ -115,7 +119,7 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 28),
              const _SectionTitle(title: 'Seu Atlas'),
             const SizedBox(height: 12),
-            const _AtlasAiCard(),
+             _AtlasAiCard(onTap: _openAi),
             const SizedBox(height: 28),
             _SectionTitle(
               title: 'Movimentações recentes',
@@ -433,9 +437,13 @@ class _PlanningShortcut extends StatelessWidget {
 }
 
 class _AtlasAiCard extends StatelessWidget {
-  const _AtlasAiCard();
+  const _AtlasAiCard({required this.onTap});
+  final VoidCallback onTap;
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(BuildContext context) => InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(26),
+    child: Container(
     padding: const EdgeInsets.all(20),
     decoration: BoxDecoration(
       gradient: const LinearGradient(
@@ -475,6 +483,7 @@ class _AtlasAiCard extends StatelessWidget {
         ),
         Icon(Icons.chevron_right_rounded, color: AtlasColors.white),
       ],
+    ),
     ),
   );
 }

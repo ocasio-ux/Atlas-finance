@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:atlas_finance/app/app.dart';
 import 'package:atlas_finance/features/home/home_page.dart';
+import 'package:atlas_finance/features/splash/atlas_splash_page.dart';
 import 'package:atlas_finance/features/transactions/new_transaction_page.dart';
 
 void main() {
   testWidgets('Atlas starts with branded animated splash', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const AtlasApp());
+    await tester.pumpWidget(const MaterialApp(home: AtlasSplashPage()));
 
     // The splash deliberately fades the wordmark/tagline in. The widgets are
     // present from the first frame even when their opacity starts at zero.

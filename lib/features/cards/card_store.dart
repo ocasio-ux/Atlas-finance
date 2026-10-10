@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'card_model.dart';
@@ -30,6 +32,7 @@ class CardStore extends ChangeNotifier {
         );
     }
     _loaded = true;
+    await _syncCloud();
     notifyListeners();
   }
 
@@ -37,6 +40,7 @@ class CardStore extends ChangeNotifier {
     _cards.add(card);
     notifyListeners();
     await _persist();
+    await _writeCloud(card);
   }
 
   Future<void> update(AtlasCard card) async {
@@ -45,12 +49,14 @@ class CardStore extends ChangeNotifier {
     _cards[index] = card;
     notifyListeners();
     await _persist();
+    await _writeCloud(card);
   }
 
   Future<void> delete(String id) async {
     _cards.removeWhere((item) => item.id == id);
     notifyListeners();
     await _persist();
+    await _deleteCloud(id);
   }
 
   AtlasCard? findById(String id) {
@@ -66,5 +72,41 @@ class CardStore extends ChangeNotifier {
       _storageKey,
       jsonEncode(_cards.map((item) => item.toJson()).toList()),
     );
+  }
+
+  Future<void> clearAll() async {
+    final ids = _cards.map((item) => item.id).toList();
+    _cards.clear();
+    notifyListeners();
+    await _persist();
+    for (final id in ids) await _deleteCloud(id);
+  }
+
+  CollectionReference<Map<String, dynamic>>? get _cloud {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    return uid == null ? null : FirebaseFirestore.instance.collection('users/$uid/cards');
+  }
+
+  Future<void> _syncCloud() async {
+    final cloud = _cloud;
+    if (cloud == null) return;
+    try {
+      final snapshot = await cloud.get();
+      if (snapshot.docs.isEmpty && _cards.isNotEmpty) {
+        for (final card in _cards) await _writeCloud(card);
+        return;
+      }
+      _cards
+        ..clear()
+        ..addAll(snapshot.docs.map((doc) => AtlasCard.fromJson(doc.data())));
+    } catch (_) {}
+  }
+
+  Future<void> _writeCloud(AtlasCard card) async {
+    try { await _cloud?.doc(card.id).set(Map<String, dynamic>.from(card.toJson())); } catch (_) {}
+  }
+
+  Future<void> _deleteCloud(String id) async {
+    try { await _cloud?.doc(id).delete(); } catch (_) {}
   }
 }

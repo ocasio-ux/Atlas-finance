@@ -41,6 +41,7 @@ credentials.local.json
 secrets/
 service-account*.json
 firebase-adminsdk-*.json
+android/app/google-services.json
 
 # IntelliJ related
 *.iml

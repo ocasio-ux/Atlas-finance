@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'transaction_model.dart';
@@ -41,6 +43,7 @@ class TransactionStore extends ChangeNotifier {
       _sort();
     }
     _loaded = true;
+    await _syncCloud();
     notifyListeners();
   }
 
@@ -51,6 +54,7 @@ class TransactionStore extends ChangeNotifier {
     _sort();
     notifyListeners();
     await _persist();
+    for (final transaction in transactions) await _writeCloud(transaction);
   }
 
   Future<void> update(AtlasTransaction transaction) async {
@@ -60,12 +64,14 @@ class TransactionStore extends ChangeNotifier {
     _sort();
     notifyListeners();
     await _persist();
+    await _writeCloud(transaction);
   }
 
   Future<void> delete(String transactionId) async {
     _transactions.removeWhere((item) => item.id == transactionId);
     notifyListeners();
     await _persist();
+    await _deleteCloud(transactionId);
   }
 
   AtlasTransaction? findById(String transactionId) {
@@ -82,5 +88,42 @@ class TransactionStore extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     final raw = jsonEncode(_transactions.map((item) => item.toJson()).toList());
     await prefs.setString(_storageKey, raw);
+  }
+
+  Future<void> clearAll() async {
+    final ids = _transactions.map((item) => item.id).toList();
+    _transactions.clear();
+    notifyListeners();
+    await _persist();
+    for (final id in ids) await _deleteCloud(id);
+  }
+
+  CollectionReference<Map<String, dynamic>>? get _cloud {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    return uid == null ? null : FirebaseFirestore.instance.collection('users/$uid/transactions');
+  }
+
+  Future<void> _syncCloud() async {
+    final cloud = _cloud;
+    if (cloud == null) return;
+    try {
+      final snapshot = await cloud.get();
+      if (snapshot.docs.isEmpty && _transactions.isNotEmpty) {
+        for (final transaction in _transactions) await _writeCloud(transaction);
+        return;
+      }
+      _transactions
+        ..clear()
+        ..addAll(snapshot.docs.map((doc) => AtlasTransaction.fromJson(doc.data())));
+      _sort();
+    } catch (_) {}
+  }
+
+  Future<void> _writeCloud(AtlasTransaction transaction) async {
+    try { await _cloud?.doc(transaction.id).set(Map<String, dynamic>.from(transaction.toJson())); } catch (_) {}
+  }
+
+  Future<void> _deleteCloud(String id) async {
+    try { await _cloud?.doc(id).delete(); } catch (_) {}
   }
 }

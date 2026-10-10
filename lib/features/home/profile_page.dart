@@ -1,9 +1,52 @@
 import 'package:flutter/material.dart';
 
 import '../../app/theme/atlas_colors.dart';
+import '../accounts/account_store.dart';
+import '../cards/card_store.dart';
+import '../planning/planning_store.dart';
+import '../transactions/transaction_store.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  Future<void> _deleteData() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Apagar todos os dados?'),
+        content: const Text(
+          'Isso removerá contas, cartões, movimentações, metas e limites deste aparelho e da sua conta online. Essa ação não pode ser desfeita.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton.tonal(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Apagar tudo'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    await Future.wait([
+      AccountStore.instance.clearAll(),
+      CardStore.instance.clearAll(),
+      TransactionStore.instance.clearAll(),
+      PlanningStore.instance.clearAll(),
+    ]);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Todos os dados foram apagados.')),
+    );
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -38,6 +81,13 @@ class ProfilePage extends StatelessWidget {
           'O Atlas já pode ser usado para registrar e acompanhar suas finanças sem criar uma conta.',
           textAlign: TextAlign.center,
           style: TextStyle(color: AtlasColors.textMuted, height: 1.4),
+        ),
+        const SizedBox(height: 28),
+        OutlinedButton.icon(
+          onPressed: _deleteData,
+          icon: const Icon(Icons.delete_sweep_outlined),
+          label: const Text('Apagar meus dados'),
+          style: OutlinedButton.styleFrom(foregroundColor: Colors.redAccent),
         ),
       ],
     ),
